@@ -1,0 +1,18 @@
+  .contentarea {
+    font-size: 16px;
+    font-family: "Lucida Grande", "Arial", sans-serif;
+  }
+
+  .veil {
+    position: fixed; 
+    z-index: 99999; 
+    height: 100%; 
+    width: 100%; 
+    top: 0; 
+    left:0; 
+    background-color: Black; 
+    filter: alpha(opacity=60); 
+    opacity: 0.6; 
+    -moz-opacity: 0.8;
+    display: none
+  }

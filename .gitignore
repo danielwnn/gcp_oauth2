@@ -1,0 +1,4 @@
+.vscode/
+venv/
+app_old.py
+client_secret.json
