@@ -2,7 +2,7 @@ import yaml
 import json
 import flask
 import requests
-from flask import current_app as app
+from flask import current_app as app, request, session
 
 from google.oauth2.credentials import Credentials
 from google.api_core.exceptions import Unauthenticated
@@ -10,24 +10,22 @@ from google.api_core.exceptions import Unauthenticated
 # deploy the demo
 def deploy(project, location):
   # save the full request path
-  flask.session['req_full_path'] = flask.request.full_path
-  print(f"deploy url -> {flask.request.full_path}")
+  session['req_full_path'] = request.full_path
   
   # check if user session is present
-  if ('credentials' in flask.session):
+  if ('credentials' in session):
     # Load credentials from the session.
-    credentials = Credentials(**flask.session['credentials'])
+    credentials = Credentials(**session['credentials'])
   
     # create the cloud build job
     result, status_code = _create_build_job(credentials, project, location)
-    print(result) #json.dumps(result, indent = 4)
   
     if status_code == 401 and flask.request.method == "GET":
       return flask.redirect('/authorize')
   
     return result, status_code # flask.jsonify(flask.session['id_info'])
   else: 
-    if flask.request.method == "GET":
+    if request.method == "GET":
       return flask.redirect('/authorize')
     else:
       # POST through AJAX

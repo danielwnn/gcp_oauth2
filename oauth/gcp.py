@@ -42,15 +42,12 @@ def revoke():
   # clear credentials
   # del flask.session['credentials']
   
-  print(result)
   return result, status_code
 
 # oauth2 user consent flow
 def authorize():
   CLIENT_SECRETS_FILE = app.config["CLIENT_SECRETS_FILE"]
-  # print(f"CLIENT_SECRETS_FILE: {CLIENT_SECRETS_FILE}")
   SCOPES = app.config["SCOPES"]
-  # print(f"SCOPES: {SCOPES}")
   
   # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
   flow = Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -73,7 +70,7 @@ def authorize():
   # Store the state so the callback can verify the auth server response.
   flask.session['state'] = state
 
-  # print(f"authorize: url -> {authorization_url}")
+  # app.logger.debug(f"authorize_url - {authorization_url}")
   return flask.redirect(authorization_url)
 
 # oauth2 callback
@@ -90,7 +87,7 @@ def oauth2_callback():
 
   # Use the authorization server's response to fetch the OAuth 2.0 tokens
   flow.fetch_token(authorization_response=flask.request.url)
-  # print(f"oauth2_callback: url -> {flask.request.url}")
+  # app.logger.debug(f"oauth2_callback_url - {flask.request.url}")
   
   # Store credentials in the session.
   # ACTION ITEM: In a production app, you likely want to save these
@@ -100,6 +97,6 @@ def oauth2_callback():
   flask.session['credentials'] = _credentials_to_dict(credentials)
 
   url = flask.url_for('index') + '#' + flask.session['req_full_path']
-  print(f"callback redirect url -> {url}")
+  app.logger.debug(f"callback_redirect_url - {url}")
   return flask.redirect(url)
 

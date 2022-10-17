@@ -1,5 +1,6 @@
 .vscode/
 venv/
+logs/
 .DS_Store
 app_old.py
 client_secret.json

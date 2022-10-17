@@ -38,8 +38,8 @@ function deploy(path) {
     var result = document.getElementById('result');
 
     fetch(path, {
-        method: 'POST',
-        body: {}
+        method: "POST",
+        body: JSON.stringify({demoId: "test123"})
     })
     .then(async function(response) {
         if (response.status == 401) {

@@ -1,0 +1,32 @@
+version: 1
+disable_existing_loggers: true
+formatters:
+  detail:
+    format: '%(asctime)s %(levelname)s: %(filename)s:%(lineno)d - %(module)s.%(funcName)s -> %(message)s'
+  simple:
+    format: '%(asctime)s %(levelname)s: %(module)s.%(funcName)s -> %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: simple
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.TimedRotatingFileHandler
+    level: DEBUG
+    formatter: detail
+    filename: logs/application.log
+    when: midnight
+    encoding: UTF-8
+loggers:
+  console:
+    level: DEBUG
+    handlers: [console]
+    propagate: False
+  file:
+    level: DEBUG
+    handlers: [file]
+    propagate: False
+root:
+  level: DEBUG
+  handlers: [console, file]

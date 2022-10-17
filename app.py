@@ -1,8 +1,10 @@
 import os
 import json
-from flask import Flask, make_response
+import logging
+from flask import Flask, jsonify, make_response, request, Response
 from werkzeug.exceptions import HTTPException
 
+import logger
 from oauth import gcp
 from api import rest
 
@@ -12,7 +14,10 @@ APP_PORT = os.getenv("FLASK_RUN_PORT", 8080)
 
 # Create Flask app
 app = Flask(__name__, static_url_path="/", static_folder="static")
-app.config.from_file("./config/settings.json", load=json.load)
+app.config.from_file("config/settings.json", load=json.load)
+
+# setup logging
+logger.init(app)
 
 # index endpoint
 app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("index.html"))
@@ -23,9 +28,50 @@ app.add_url_rule("/revoke", "revoke", view_func=gcp.revoke)
 # deploy endpoint
 app.add_url_rule("/deploy/<project>/<location>", "deploy", methods=["GET", "POST"], view_func=rest.deploy)
 
+# run after the app starts
+with app.app_context():
+  dummy = 1
+    
+# run before the first request
+@app.before_first_request
+def disable_werkzeug_logging():
+  logging.getLogger("werkzeug").disabled = True
+  
+# log before every request
+@app.before_request
+def log_request():
+  app.logger.info(
+    "%s %s %s %s %s",
+    request.environ.get("SERVER_PROTOCOL"),
+    request.remote_addr,
+    request.method,
+    request.full_path,
+    request.get_data(as_text=True)
+  )
+  
+# log after every request
+@app.after_request
+def log_response(response):
+    response_body = json.dumps(response.get_json())
+    if (response_body == "null"):
+      response_body = ""
+      
+    app.logger.info(
+        "%s %s %s %s %s %s",
+        request.environ.get("SERVER_PROTOCOL"),
+        request.remote_addr,
+        request.method,
+        request.full_path,
+        response.status,
+        response_body
+    )
+    return response
+
 # catch all errors handler  
 @app.errorhandler(Exception)
 def handle_exception(e):
+    app.logger.error("Exception occurred: ", exc_info=True)
+    
     # pass through flask HTTP errors as json
     if isinstance(e, HTTPException):
         response = e.get_response()
@@ -56,8 +102,13 @@ if __name__ == "__main__":
 
   # Supress raising the scope change error from oauthlib
   os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
-
+  
   # Use waitress for production deployment
   # from waitress import serve
   # serve(app, host="0.0.0.0", port=8080, _quiet=False)
-  app.run(host=APP_HOST, port=APP_PORT, debug=True)
+  app.run(
+    host=APP_HOST, 
+    port=APP_PORT, 
+    # request_handler=logger.MyRequestHandler, 
+    debug=True
+  )
