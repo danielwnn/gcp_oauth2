@@ -16,9 +16,12 @@ def deploy(project, location):
   if ('credentials' in session):
     # Load credentials from the session.
     credentials = Credentials(**session['credentials'])
+    
+    # hard-coded the sample url for now
+    file_url = "https://raw.githubusercontent.com/danielwnn/FaceRecognition/main/cloudbuild.yaml"
   
     # create the cloud build job
-    result, status_code = _create_build_job(credentials, project, location)
+    result, status_code = _create_build_job(credentials, file_url, project, location)
   
     if status_code == 401 and flask.request.method == "GET":
       return flask.redirect('/authorize')
@@ -32,22 +35,26 @@ def deploy(project, location):
       return {"error": {"code": 401, "message": "Unauthenticated."}}, 401
 
 # Create a Cloud Build job
-def _create_build_job(credentials, project, location):
+def _create_build_job(credentials, file_url, project, location):
   PROJECT_ID = app.config["PROJECT_ID"]
   endpoint = f"https://cloudbuild.googleapis.com/v1/projects/{PROJECT_ID}/builds"
   
-  CLOUD_BUILD_YAML = app.config["CLOUD_BUILD_YAML"]
-  with open(CLOUD_BUILD_YAML, 'r') as yaml_in:
-    yaml_obj = yaml.safe_load(yaml_in)
-    data = json.dumps(yaml_obj)
+  # CLOUD_BUILD_YAML = app.config["CLOUD_BUILD_YAML"]
+  # with open(CLOUD_BUILD_YAML, 'r') as yaml_in:
+  #   yaml_obj = yaml.safe_load(yaml_in)
+  #   data = json.dumps(yaml_obj)
 
+  # fetch the yaml file from Github
+  file_req = requests.get(file_url)
+  yaml_obj = yaml.safe_load(file_req.text)
+  data = json.dumps(yaml_obj)
+  
   headers = {
     "Authorization": f"Bearer {credentials.token}", 
     "Content-Type": "application/json"
   }
-  
+
   response = requests.post(endpoint, headers=headers, data=data)
   return response.json(), response.status_code
 
 
-  
