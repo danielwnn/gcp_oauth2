@@ -1,9 +1,11 @@
 import os
 import json
 import logging
-from flask import Flask, jsonify, make_response, request
+from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
+from flask import Flask, request, make_response
 
+# local modules
 import logger
 from oauth import gcp
 from api import rest
@@ -11,6 +13,7 @@ from api import rest
 # get the host and port
 APP_HOST = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
 APP_PORT = os.getenv("FLASK_RUN_PORT", 8080)
+APP_CORS = os.getenv("FLASK_CORS", f"http://localhost:{APP_PORT}")
 
 # the app factory function
 def create_app(config_file = "config/settings.json"):
@@ -20,7 +23,7 @@ def create_app(config_file = "config/settings.json"):
 
   # setup logging
   logger.init(app)
-
+  
   # index endpoint
   app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("index.html"))
   # oauth2 endpoins
@@ -32,11 +35,12 @@ def create_app(config_file = "config/settings.json"):
 
   # run after the app starts
   with app.app_context():
-    dummy = 1
+    # not used so far
+    dummy = 1 
       
   # run before the first request
   @app.before_first_request
-  def disable_werkzeug_logging():
+  def before_first_request():
     logging.getLogger("werkzeug").disabled = True
     
   # log before every request
@@ -50,6 +54,16 @@ def create_app(config_file = "config/settings.json"):
       request.full_path,
       request.get_data(as_text=True)
     )
+    # CORS validate
+    cors = f"{request.scheme}://{request.host}"
+    if (cors != "*") and (cors not in APP_CORS):
+      response_body = {
+        "error": {
+          "code": 403, 
+          "message": f"The CORS Policy disallows reading the remote resource at {cors}."
+        }
+      }
+      return make_response(response_body, 403)
     
   # log after every request
   @app.after_request
@@ -92,7 +106,7 @@ def create_app(config_file = "config/settings.json"):
       response_body = {
         "error": {
           "code": 500, 
-          "message": "unhandled exception occurred", 
+          "message": "Unhandled exception occurred.", 
           "details": str(e)
         }
       }
@@ -118,6 +132,6 @@ def _main():
     debug=True
   )
   
+# start the application
 if __name__ == "__main__":
-  # start the app
   _main()

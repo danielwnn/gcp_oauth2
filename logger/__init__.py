@@ -16,16 +16,16 @@ def init(app):
     # set up logging through config file
     config = yaml.load(open("config/logging.yaml"), Loader=yaml.FullLoader)
     logging.config.dictConfig(config)
-    logging.Logger.propagate = False
-    # disable werkzeug logging
-    # logging.getLogger("werkzeug").disabled = True
 
+    # disable logging propagation
     app.logger.propagate = False
     file = logging.getLogger("file")
     console = logging.getLogger("console")
     
     # set the log level
-    log_level = _get_log_level(os.getenv("FLASK_LOG_LEVEL"))
+    APP_LOG_LEVEL = os.getenv("FLASK_LOG_LEVEL", "DEBUG")
+    log_level = _get_log_level(APP_LOG_LEVEL)
+    logging.getLogger("flask_cors").level = log_level
     file.setLevel(log_level)
     console.setLevel(log_level)
     
@@ -46,7 +46,7 @@ def _get_log_level(level):
         return logging.ERROR
     if level == "CRITICAL":
         return logging.CRITICAL
-    return logging.DEBUG
+    return logging.INFO
 
 class MyRequestHandler(WSGIRequestHandler):
     # Just like WSGIRequestHandler, but without "- -"
