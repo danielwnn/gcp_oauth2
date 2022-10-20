@@ -2,15 +2,9 @@ import os
 import logging, logging.config, yaml
 from werkzeug.serving import WSGIRequestHandler, _log
 
-
-# create the logs folder if not present
-logdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-if not os.path.exists(logdir):
-  os.mkdir(logdir)
-
 # init logging
 def init(app):
-    APP_ENV = os.getenv("FLASK_ENV", "DEV")
+    APP_ENV = os.getenv("APP_ENV", "DEV")
     app.config["APP_ENV"] = APP_ENV
     
     # set up logging through config file

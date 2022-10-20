@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from flask import Flask, request, make_response
 
@@ -11,9 +10,11 @@ from oauth import gcp
 from api import rest
 
 # get the host and port
-APP_HOST = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
-APP_PORT = os.getenv("FLASK_RUN_PORT", 8080)
-APP_CORS = os.getenv("FLASK_CORS", f"http://localhost:{APP_PORT}")
+APP_ENV  = os.getenv("APP_ENV", "DEV")
+APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
+APP_PORT = os.getenv("APP_PORT", 8080)
+APP_CORS = os.getenv("APP_CORS", f"http://localhost:{APP_PORT}")
+APP_LOG_DIR = os.getenv("APP_LOG_DIR", "logs")
 
 # the app factory function
 def create_app(config_file = "config/settings.json"):
@@ -22,6 +23,8 @@ def create_app(config_file = "config/settings.json"):
   app.config.from_file(config_file, load=json.load)
 
   # setup logging
+  if not os.path.exists(APP_LOG_DIR):
+    os.mkdir(APP_LOG_DIR)
   logger.init(app)
   
   # index endpoint
@@ -126,12 +129,13 @@ def _main():
   # serve(app, host="0.0.0.0", port=8080, _quiet=False)
   app = create_app()
   app.run(
-    host=APP_HOST, 
-    port=APP_PORT, 
+    threaded = True,
+    host = APP_HOST, 
+    port = APP_PORT, 
     # request_handler=logger.MyRequestHandler, 
-    debug=True
+    debug = (APP_ENV == "DEV")
   )
   
 # start the application
-if __name__ == "__main__":
+if __name__ == "__main__":  
   _main()
