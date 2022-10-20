@@ -3,11 +3,13 @@ import json
 import logging
 from werkzeug.exceptions import HTTPException
 from flask import Flask, request, make_response
+from waitress import serve
 
 # local modules
 import logger
 from oauth import gcp
 from api import rest
+from utils import get_local_ip
 
 # get the host and port
 APP_ENV  = os.getenv("APP_ENV", "DEV")
@@ -44,7 +46,8 @@ def create_app(config_file = "config/settings.json"):
   # run before the first request
   @app.before_first_request
   def before_first_request():
-    logging.getLogger("werkzeug").disabled = True
+    # not used so far
+    dummy = 1
     
   # log before every request
   @app.before_request
@@ -117,25 +120,33 @@ def create_app(config_file = "config/settings.json"):
 
   return app
 
-def _main():
+def main():
   # When running locally, disable OAuthlib's HTTPs verification.
   os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
   # Supress raising the scope change error from oauthlib
   os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
   
-  # Use waitress for production deployment
-  # from waitress import serve
-  # serve(app, host="0.0.0.0", port=8080, _quiet=False)
+  # create the app
   app = create_app()
-  app.run(
-    threaded = True,
-    host = APP_HOST, 
-    port = APP_PORT, 
-    # request_handler=logger.MyRequestHandler, 
-    debug = (APP_ENV == "DEV")
-  )
+  
+  # display the IP and port info
+  app.logger.info(f"App is running on http://{APP_HOST}:{APP_PORT}")
+  app.logger.info(f"App is running on http://{get_local_ip()}:{APP_PORT}")
+  
+  is_dev = APP_ENV == "DEV"
+  if is_dev:
+    app.run(
+      threaded = True,
+      host = APP_HOST, 
+      port = APP_PORT, 
+      # request_handler=logger.MyRequestHandler,
+      debug = is_dev 
+    )
+  else:
+    # Use waitress for production deployment
+    serve(app, host=APP_HOST, port=APP_PORT)
   
 # start the application
 if __name__ == "__main__":  
-  _main()
+  main()

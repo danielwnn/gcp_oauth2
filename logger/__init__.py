@@ -7,6 +7,9 @@ def init(app):
     APP_ENV = os.getenv("APP_ENV", "DEV")
     app.config["APP_ENV"] = APP_ENV
     
+    # disable logging for werkzeug
+    logging.getLogger("werkzeug").disabled = True
+    
     # set up logging through config file
     config = yaml.load(open("config/logging.yaml"), Loader=yaml.FullLoader)
     logging.config.dictConfig(config)
@@ -15,13 +18,14 @@ def init(app):
     app.logger.propagate = False
     file = logging.getLogger("file")
     console = logging.getLogger("console")
+    waitress = logging.getLogger("waitress")
     
     # set the log level
-    APP_LOG_LEVEL = os.getenv("FLASK_LOG_LEVEL", "DEBUG")
+    APP_LOG_LEVEL = os.getenv("APP_LOG_LEVEL", "DEBUG")
     log_level = _get_log_level(APP_LOG_LEVEL)
-    logging.getLogger("flask_cors").level = log_level
     file.setLevel(log_level)
     console.setLevel(log_level)
+    waitress.setLevel(log_level)
     
     # add the handlers to logger
     app.logger.addHandler(file)
