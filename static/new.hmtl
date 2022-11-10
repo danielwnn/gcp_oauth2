@@ -1,0 +1,133 @@
+      <div id="demoList" class="row">
+        <div class="col-lg-3"></div>
+        <div class="col-lg-6">
+          <div class="accordion" id="accordion">
+            <div class="accordion-item">
+              <h3 class="accordion-header" id="headingOne">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne"> 
+                  Demo Onboarding Form
+                </button>
+              </h3>
+              <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordion">
+                <div class="accordion-body"> 
+                  <form id="frmDemoInfo" name="frmDemoInfo" class="row g-3 needs-validation" novalidate="">
+                
+                    <div class="col-12"> 
+                      <label for="inputName" class="form-label">Name / Title:</label>
+                      <input id="inputName" name="name" type="text" class="form-control" required="">
+                      <div class="invalid-feedback">Please provide a name / title.</div>
+                    </div>
+    
+                    <div class="col-12"> 
+                      <label for="inputContact" class="form-label">Contacts:</label>
+                      <input id="inputContact" name="contact" type="text" class="form-control" placeholder="alias@google.com, alias" required="">
+                      <div class="invalid-feedback">Please provide alias or email separated by comma.</div>
+                    </div>
+    
+                    <div class="col-12"> 
+                      <label for="inputDescription" class="form-label">Description:</label>
+                      <textarea id="inputDescription" name="description" class="form-control" required=""></textarea>
+                      <div class="invalid-feedback">Please provide a description.</div>
+                    </div>
+    
+                    <div class="col-12"> 
+                      <label for="inputRepoUrl" class="form-label">Github Repo URL:</label>
+                      <input id="inputRepoUrl" name="repository_url" type="text" class="form-control" required="">
+                      <div class="invalid-feedback">Please provide the Github repository URL.</div>
+                    </div>
+    
+                    <div class="col-12"> 
+                      <label for="inputDeployUrl" class="form-label">Deploy Script URL:</label>
+                      <input id="inputDeployUrl" name="deploy_url" type="text" class="form-control" required="">
+                      <div class="invalid-feedback">Please provide the deploy script URL.</div>
+                    </div>
+    
+                    <div class="col-12"> 
+                      <label for="inputUndeployUrl" class="form-label">Undeploy Script URL:</label>
+                      <input id="inputUndeployUrl" name="undeploy_url" type="text" class="form-control" placeholder="Nice to have">
+                      <div class="invalid-feedback">Please provide the deploy script URL.</div>
+                    </div>
+    
+                    <div class="text-center"> 
+                      <button class="btn btn-outline-primary btn-sm me-3" type="submit">Save Demo</button>
+                      <button type="reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                    </div>
+                  </form>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3"></div>
+      </div>
+
+
+      <div class="row">
+        <div class="col-12 text-end mb-3">
+          <button class="btn btn-outline-primary btn-sm">Onboard New Demo</button>
+        </div>
+      </div>
+
+      <div id="demoList" class="row">
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">Demo #1</div>
+            <div class="card-body">
+              <span>This is a sample demo #1.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Demo #2</h5>
+              <span>This is a sample demo #2.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Demo #2</h5>
+              <span>This is a sample demo #2.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Demo #2</h5>
+              <span>This is a sample demo #2.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Demo #2</h5>
+              <span>This is a sample demo #2.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="demoList" class="row">
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Demo #1</h5>
+              <span>This is a test.</span>
+            </div>
+            <div class="card-footer text-end">
+              <button class="btn btn-outline-primary btn-sm float-start">Deploy</button>
+              <button class="btn btn-outline-danger btn-sm float-end">Delete</button>
+              <button class="btn btn-outline-success btn-sm float-end me-2">Update</button>
+            </div>
+          </div>
+        </div>
+      </div>
