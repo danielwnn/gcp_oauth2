@@ -137,6 +137,15 @@ function updateBreadcrumb(hashPath) {
   select('#breadcrumb').innerHTML = innerHTML;
 }
 
+// update the selected Nav Menu
+let curHashPath, prevHashPath;
+function updateSidebarSelected() {
+  let selected = select(`a[href="#${prevHashPath}"]`);
+  if (selected) selected.classList.remove("active");
+  selected = select(`a[href="#${curHashPath}"]`);
+  if (selected) selected.classList.add("active");
+}
+
 // update the demo list content
 let demoList = [];
 let demoDict = {};
@@ -354,6 +363,21 @@ function deploy(path) {
   });
 }
 
+// route based updates
+function onHashPathChanged() {
+  let hashPath = getHashPath();
+  if (hashPath === "") {
+    setHashPath("/dashboard");
+  } else {
+    prevHashPath = curHashPath;
+    curHashPath = hashPath;
+    updateSidebarSelected();
+    updateBreadcrumb(hashPath);
+    updateMainContent(hashPath);
+    // deploy(hashPath);
+  }
+}
+
 // popup window callback
 window.onload = function() {
   if (window.opener != null && !window.opener.closed) {
@@ -362,22 +386,21 @@ window.onload = function() {
       window.close();
   } else {
       console.log("onload: " + location.hash);
-      let hashPath = getHashPath();
-      if (hashPath === "") {
-        setHashPath("/dashboard");
-      } else {
-        updateBreadcrumb(hashPath);
-        updateMainContent(hashPath);
-        // deploy(hashPath);
-      }
+      onHashPathChanged();
   }
 }
 
 // parent window - trigger on hashchange
 window.onhashchange = function() {
   console.log("onhashchange: " + location.hash);
-  let hashPath = getHashPath();
-  updateBreadcrumb(hashPath);
-  updateMainContent(hashPath);
+  onHashPathChanged();
+
+  /*
+  prevHashPath = curHashPath;
+  curHashPath = getHashPath();
+  updateSidebarSelected();
+  updateBreadcrumb(curHashPath);
+  updateMainContent(curHashPath);
+  */
   // deploy(hashPath);
 }
