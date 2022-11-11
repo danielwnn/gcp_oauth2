@@ -807,7 +807,7 @@ form input {
 /*--------------------------------------------------------------
 # Demo List
 --------------------------------------------------------------*/
-#demoListInfo .alert {
+#mainContent .alert, #demoListInfo .alert {
   font-size: 15px;
   height:  42px; 
   padding: 8px 12px;

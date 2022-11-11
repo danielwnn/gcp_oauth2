@@ -31,7 +31,7 @@ function formData2JSON(form) {
 // set the hash path
 function setHashPath(path) {
   if (location.hash === "#" + path) {
-      deploy(path);
+      // deploy(path);
   } else {
       location.hash = path;
   }
@@ -131,7 +131,9 @@ function updateBreadcrumb(hashPath) {
   if (paths.length > 2) {
     innerHTML = '<li class="breadcrumb-item"><a href="#/dashboard">Home</a></li>';
     for (let i=1; i < paths.length; i++) {
-      innerHTML += `<li class="breadcrumb-item active">${BREADCRUMB_LABELS[paths[i]]}</li>`;
+      if (BREADCRUMB_LABELS[paths[i]]) {
+        innerHTML += `<li class="breadcrumb-item active">${BREADCRUMB_LABELS[paths[i]]}</li>`;
+      }
     }
   }
   select('#breadcrumb').innerHTML = innerHTML;
@@ -146,10 +148,30 @@ function updateSidebarSelected() {
   if (selected) selected.classList.add("active");
 }
 
-// update the demo list content
+// the demo list
 let demoList = [];
-let demoDict = {};
-function updateDemoList() {
+
+// Get the demo by ID
+function getDemoById(id) {
+  for (let i=0; i < demoList.length; i++) {
+    let item = demoList[i];
+    if (id === item.id) return item;
+  }
+  return null;
+}
+
+// Update the demo list if found
+function updateDemoList(demo) {
+  for (let i=0; i < demoList.length; i++) {
+    let item = demoList[i];
+    if (demo.id === item.id) {
+      demoList[i] = demo;
+    }
+  }
+}
+
+// show the demo list content
+function showDemoList() {
   if (demoList.length > 0) {
     let innerHTML = "";
     for (let i=0; i < demoList.length; i++) {
@@ -161,23 +183,26 @@ function updateDemoList() {
               <span>${demoList[i].description}</span>
             </div>
             <div class="card-footer text-end">
-              <button class="btn btn-outline-primary btn-sm float-start" onclick="alert('${demoList[i].id}')"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Deploy</button>
-              <button class="btn btn-outline-danger btn-sm float-end" onclick="alert('${demoList[i].id}')">Delete</button>
-              <button class="btn btn-outline-success btn-sm float-end me-2" onclick="alert('${demoList[i].id}')">Update</button>
+              <button class="btn btn-outline-primary btn-sm float-start" onclick="deployDemo('${demoList[i].id}')"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Deploy</button>
+              <button class="btn btn-outline-danger btn-sm float-end" onclick="deleteDemo('${demoList[i].id}')">Delete</button>
+              <button class="btn btn-outline-success btn-sm float-end me-2" onclick="updateDemo('${demoList[i].id}')">Update</button>
             </div>
           </div>
         </div>`;
     }
+    select('#demoListInfo').innerHTML = "";
     select('#demoList').innerHTML = innerHTML;
   } else {
     select('#demoListInfo').innerHTML = 
     `<div class="alert alert-info alert-dismissible fade show" role="alert">
       <i class="bi bi-info-circle me-1"></i> No demos available to show.
     </div>`;
+    select('#demoList').innerHTML = "";
   }
 }
 
-function updateDemoListPage() {
+// show the demo list page
+function showDemoListPage() {
   select('#mainContent').innerHTML = 
     `<div class="row">
       <div id="demoListInfo" class="col-6 mb-3"></div>
@@ -193,25 +218,28 @@ function updateDemoListPage() {
     setHashPath("/demos/demo-onboard");
   });
   
-  updateDemoList();
+  showDemoList();
 }
 
-// update the Demo Form page
-function updateDemoFormPage(title, demoId) {
-  let name = "", 
+// show the Demo Form page
+function showDemoFormPage(title, demoId) {
+  let id = "",
+      name = "", 
       contact = "",
       description = "",
       repository_url = "",
       deploy_url = "",
       undeploy_url = "";
-  let demoJson = demoDict[demoId];
-  if (demoJson) {
-    name = demoJson["name"];
-    contact = demoJson["contact"];
-    description = demoJson["description"];
-    repository_url = demoJson["repository_url"];
-    deploy_url = demoJson["deploy_url"];
-    undeploy_url = demoJson["undeploy_url"];
+  let demo = demoId ? getDemoById(demoId) : null;
+  if (demo) {
+    let demo = getDemoById(demoId);
+    id = demo["id"];
+    name = demo["name"];
+    contact = demo["contact"];
+    description = demo["description"];
+    repository_url = demo["repository_url"];
+    deploy_url = demo["deploy_url"];
+    undeploy_url = demo["undeploy_url"];
   }
   select('#mainContent').innerHTML = 
     `<div class="row">
@@ -226,7 +254,8 @@ function updateDemoFormPage(title, demoId) {
             </h3>
             <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordion">
               <div class="accordion-body"> 
-                <form id="frmDemoInfo" name="frmDemoInfo" class="row g-3 needs-validation" novalidate="">          
+                <form id="frmDemoInfo" name="frmDemoInfo" class="row g-3 needs-validation" novalidate="">  
+                  <input name="id" value="${id}" type="hidden">
                   <div class="col-12"> 
                     <label for="inputName" class="form-label">Name / Title:</label>
                     <input id="inputName" name="name" value="${name}" type="text" class="form-control" required="">
@@ -259,7 +288,7 @@ function updateDemoFormPage(title, demoId) {
                   </div>
                   <div class="text-center"> 
                     <button class="btn btn-outline-primary btn-sm me-3" type="submit">Save Demo</button>
-                    <button type="reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="setHashPath('/demos/demo-list')">Cancel</button>
                   </div>
                 </form>
               </div>
@@ -277,12 +306,14 @@ function updateDemoFormPage(title, demoId) {
     event.stopPropagation();
     if (form.checkValidity()) {
       var jsonObj = formData2JSON(form);
-      var uuid = generateUUID();
-      jsonObj["id"] = uuid;
+      if (jsonObj["id"] === "") { // new demo
+        var uuid = generateUUID();
+        jsonObj["id"] = uuid;
+        demoList.push(jsonObj);
+      } else {  // update demo
+        updateDemoList(jsonObj);
+      }
       console.log(JSON.stringify(jsonObj));
-
-      demoList.push(jsonObj);
-      demoDict[uuid] = jsonObj;
       setHashPath("/demos/demo-list");
       
       // select('#collapseOne').classList.remove('show');
@@ -296,23 +327,44 @@ function updateDemoFormPage(title, demoId) {
   }, false);
 }
 
-// update main content
+// show main content
 function updateMainContent(hashPath) {
   let paths = hashPath.split("/");
-  let path = paths[paths.length-1]
+  let path = paths[paths.length-1];
+  if (hashPath.indexOf("demo-list") > 0) {
+    showDemoListPage();
+  } 
+  else if (hashPath.indexOf("demo-onboard") > 0) {
+    showDemoFormPage("Demo Onboard Form");
+  } 
+  else if (hashPath.indexOf("demo-update") > 0) {
+    showDemoFormPage("Demo Update Form", path);
+  } 
+  else {
+    let label = BREADCRUMB_LABELS[path];
+    if (label) {
+      select('#mainContent').innerHTML = `<h2>${BREADCRUMB_LABELS[path]}</h2>`;
+    }
+    else {
+      select('#mainContent').innerHTML = 
+        `<div class="col-6 alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="bi bi-exclamation-octagon me-1"></i> 404 - Resource not found.
+        </div>`;
+    }
+  }
+}
 
-  switch (path) {
-    case "demo-list":
-      updateDemoListPage();
-      break;
-    case "demo-onboard":
-      updateDemoFormPage("Demo Onboard Form");
-      break;
-    case "demo-update":
-      updateDemoFormPage("Demo Update Form");
-      break;
-    default: 
-      select('#mainContent').innerHTML = `<h1>${BREADCRUMB_LABELS[path]}</h1>`;
+// update the demo
+function updateDemo(id) {
+  setHashPath(`/demos/demo-update/${id}`);
+}
+
+// delete the demo 
+function deleteDemo(id) {
+  let demo = getDemoById(id);
+  if (confirm(`Do you want to delete the demo - ${demo.name}?`)) {
+    demoList = demoList.filter(item => item.id !== id);
+    showDemoList();
   }
 }
 
@@ -394,13 +446,4 @@ window.onload = function() {
 window.onhashchange = function() {
   console.log("onhashchange: " + location.hash);
   onHashPathChanged();
-
-  /*
-  prevHashPath = curHashPath;
-  curHashPath = getHashPath();
-  updateSidebarSelected();
-  updateBreadcrumb(curHashPath);
-  updateMainContent(curHashPath);
-  */
-  // deploy(hashPath);
 }
