@@ -18,6 +18,14 @@ APP_PORT = os.getenv("APP_PORT", 8080)
 APP_CORS = os.getenv("APP_CORS", f"http://localhost:{APP_PORT}")
 APP_LOG_DIR = os.getenv("APP_LOG_DIR", "logs")
 
+# check if DEV
+def _isDev():
+  return (APP_ENV == "DEV")
+
+# check if non-static resources
+def _notStatic(path):
+  return ("/img/" not in path) and ("/css/" not in path) and ("/js/" not in path) and ("/vendor/" not in path)
+
 # the app factory function
 def create_app(config_file = "config/settings.json"):
   # Create Flask app
@@ -30,13 +38,16 @@ def create_app(config_file = "config/settings.json"):
   logger.init(app)
   
   # index endpoint
-  app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("index.html"))
+  app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("home.html"))
   # oauth2 endpoins
   app.add_url_rule("/authorize", "authorize", view_func=gcp.authorize)
   app.add_url_rule("/oauth2callback", "oauth2callback", view_func=gcp.oauth2_callback)
   app.add_url_rule("/revoke", "revoke", view_func=gcp.revoke)
-  # deploy endpoint
-  app.add_url_rule("/deploy/<project>/<location>", "deploy", methods=["GET", "POST"], view_func=rest.deploy)
+  # deploy endpoints
+  app.add_url_rule("/deploy/projects", "getProjects", methods=["GET"], view_func=rest.getProjects)
+  app.add_url_rule("/deploy/projects/<project>/regions", "getRegions", methods=["GET"], view_func=rest.getRegions)
+  app.add_url_rule("/deploy/projects/<project>/regions/<region>/demos/<id>", "deploy", methods=["POST"], view_func=rest.deploy)
+   # demo endpoints
 
   # run after the app starts
   with app.app_context():
@@ -52,14 +63,15 @@ def create_app(config_file = "config/settings.json"):
   # log before every request
   @app.before_request
   def log_request():
-    app.logger.info(
-      "%s %s %s %s %s",
-      request.environ.get("SERVER_PROTOCOL"),
-      request.remote_addr,
-      request.method,
-      request.full_path,
-      request.get_data(as_text=True)
-    )
+    if _notStatic(request.full_path):
+      app.logger.info(
+        "%s %s %s %s %s",
+        request.environ.get("SERVER_PROTOCOL"),
+        request.remote_addr,
+        request.method,
+        request.full_path,
+        request.get_data(as_text=True)
+      )
     # CORS validate
     cors = f"{request.scheme}://{request.host}"
     if (cors != "*") and (cors not in APP_CORS):
@@ -74,19 +86,19 @@ def create_app(config_file = "config/settings.json"):
   # log after every request
   @app.after_request
   def log_response(response):
-      response_body = json.dumps(response.get_json())
-      if (response_body == "null"):
-        response_body = ""
-        
-      app.logger.info(
-          "%s %s %s %s %s %s",
-          request.environ.get("SERVER_PROTOCOL"),
-          request.remote_addr,
-          request.method,
-          request.full_path,
-          response.status,
-          response_body
-      )
+      # response_body = json.dumps(response.get_json())
+      # if (response_body == "null"):
+      #   response_body = ""
+      if _notStatic(request.full_path):
+        app.logger.info(
+            "%s %s %s %s %s",
+            request.environ.get("SERVER_PROTOCOL"),
+            request.remote_addr,
+            request.method,
+            request.full_path,
+            response.status
+            #,response_body
+        )
       return response
 
   # catch all errors handler  
@@ -133,15 +145,14 @@ def main():
   # display the IP and port info
   app.logger.info(f"App is running on http://{APP_HOST}:{APP_PORT}")
   app.logger.info(f"App is running on http://{get_local_ip()}:{APP_PORT}")
-  
-  is_dev = APP_ENV == "DEV"
-  if is_dev:
+
+  if _isDev():
     app.run(
       threaded = True,
       host = APP_HOST, 
       port = APP_PORT, 
       # request_handler=logger.MyRequestHandler,
-      debug = is_dev 
+      debug = _isDev() 
     )
   else:
     # Use waitress for production deployment

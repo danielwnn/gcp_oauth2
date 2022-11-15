@@ -36,13 +36,16 @@ def revoke():
         headers = {'content-type': 'application/x-www-form-urlencoded'}
       )
     result, status_code = response.json(), response.status_code
-  else:
-    return {'code': 200, 'message': 'Not authenticated, nothing to revoke.'}, 200
+    # return result, status_code
+  # else:
+  #   return {'code': 200, 'message': 'Not authenticated, nothing to revoke.'}, 200
   
-  # clear credentials
-  # del flask.session['credentials']
+  # clear session
+  flask.session.clear()
   
-  return result, status_code
+  # redirect to the homepage
+  return flask.redirect("/")
+  
 
 # oauth2 user consent flow
 def authorize():
@@ -96,7 +99,8 @@ def oauth2_callback():
   flask.session['id_info'] = _verify_oauth2_token(credentials)
   flask.session['credentials'] = _credentials_to_dict(credentials)
 
-  url = flask.url_for('index') + '#' + flask.session['req_full_path']
+  # url = flask.url_for('index') + '#' + flask.session['req_full_path']
+  url = '/popup.html#' + flask.session['req_full_path']
   app.logger.debug(f"callback_redirect_url - {url}")
   return flask.redirect(url)
 

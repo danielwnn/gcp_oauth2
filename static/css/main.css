@@ -212,8 +212,15 @@ hr {
 .card {
   font-size: 14px;
   margin-bottom: 20px;
-  border-radius: 5px;
+  background-color: #fff;
+  border-radius: 5px; 
   box-shadow: 0px 0 20px rgba(1, 41, 112, 0.1);
+  transition: all 100ms ease-in-out;
+}
+
+.card:hover {
+  transform: scale(1.01);
+  box-shadow: 0 12px 15px -4px rgba(0, 0, 0, .125), 0 24px 38px 0 rgba(0, 0, 0, .045), 0 9px 50px 0 rgba(0, 0, 0, .03);
 }
 
 .card-header {
@@ -228,6 +235,8 @@ hr {
 }
 
 .card-body {
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-left: 20px;
   padding-right: 20px;
 }
@@ -794,7 +803,7 @@ hr {
 }
 
 /*--------------------------------------------------------------
-# from
+# FORM
 --------------------------------------------------------------*/
 form textarea {
   height: 100px;
@@ -802,6 +811,10 @@ form textarea {
 
 form input {
   font-size: 13px;
+}
+
+input[readonly="true"] {
+  background-color: rgb(240, 236, 236);
 }
 
 /*--------------------------------------------------------------

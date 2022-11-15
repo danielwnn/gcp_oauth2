@@ -6,12 +6,10 @@
 </head>
 <body>
     <script language="JavaScript">
-        window.onunload = function() {
-            if (window.opener != null && !window.opener.closed) {
-                window.opener.callback();
-             }
-        };
-        window.close();
+        if (window.opener != null && !window.opener.closed) {
+            window.opener.popupCallback(location.hash.substring(1));
+            window.close();
+        }
     </script>
 </body>
 </html>

@@ -1,15 +1,20 @@
 "use strict";
 
-// Public Domain/MIT
+let PROJECTS_ENDPOINT = "/deploy/projects";
+let REGIONS_ENDPOINT  = "/deploy/projects/<project>/regions";
+let DEPLOY_ENDPOINT   = "/deploy/projects/<project>/regions/<region>/demos/<id>";
+
+// Public Domain / MIT
 function generateUUID() { 
-  var d = new Date().getTime();//Timestamp
-  var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;//Time in microseconds since page-load or 0 if unsupported
+  var d = new Date().getTime();
+  // Time in microseconds since page-load or 0 if unsupported
+  var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;
   return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      var r = Math.random() * 16;//random number between 0 and 16
-      if(d > 0){//Use timestamp until depleted
+      var r = Math.random() * 16; // random number between 0 and 16
+      if(d > 0){ // Use timestamp until depleted
           r = (d + r)%16 | 0;
           d = Math.floor(d/16);
-      } else {//Use microseconds since page-load if supported
+      } else { // Use microseconds since page-load if supported
           r = (d2 + r)%16 | 0;
           d2 = Math.floor(d2/16);
       }
@@ -116,6 +121,7 @@ let BREADCRUMB_LABELS = {
   "my-demos": "My Demos",
   "demo-onboard": "Demo Onboard",
   "demo-update" : "Demo Update",
+  "demo-deploy" : "Demo Deployment",
   "oss": "OSS",
   "agones": "Agones",
   "open-match": "Open Match",
@@ -208,7 +214,7 @@ function showDemoListPage() {
       <div id="demoListInfo" class="col-6 mb-3"></div>
       <div class="col-6 text-end mb-3">
         <button id="btnOnboard" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-box-arrow-in-right me-1"></i>Onboard New Demo
+          <i class="bi bi-box-arrow-in-right me-1"></i>Onboard Demo
         </button>
       </div>
     </div>
@@ -254,7 +260,7 @@ function showDemoFormPage(title, demoId) {
             </h3>
             <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordion">
               <div class="accordion-body"> 
-                <form id="frmDemoInfo" name="frmDemoInfo" class="row g-3 needs-validation" novalidate="">  
+                <form id="frmDemoInfo" name="frmDemoInfo" class="row g-3 needs-validation" novalidate="" onsubmit="return false;">  
                   <input name="id" value="${id}" type="hidden">
                   <div class="col-12"> 
                     <label for="inputName" class="form-label">Name / Title:</label>
@@ -327,18 +333,99 @@ function showDemoFormPage(title, demoId) {
   }, false);
 }
 
+// show the Demo deployment page
+function showDemoDeployPage(title, demoId) {
+  let demo = getDemoById(demoId);
+  let name = "";
+  if (demo) name = demo["name"];
+  select('#mainContent').innerHTML = 
+    `<div class="row">
+      <div class="col-lg-3"></div>
+      <div class="col-lg-6">
+        <div class="accordion mb-3" id="accordion">
+          <div class="accordion-item">
+            <h3 class="accordion-header" id="headingOne">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne"> 
+                ${title}
+              </button>
+            </h3>
+            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordion">
+              <div class="accordion-body"> 
+                <form id="frmDemoDeploy" name="frmDemoDeploy" class="row g-3 needs-validation" novalidate="" onsubmit="return false;">  
+                  <input name="demo_id" value="${demoId}" type="hidden">
+                  <div class="col-12"> 
+                    <label for="inputName" class="form-label">Demo Name (read-only):</label>
+                    <input id="inputName" name="name" value="${name}" type="text" class="form-control" readonly="true">
+                  </div>
+                  <div class="col-12"> 
+                    <label for="inputProject" class="form-label">GCP Project:</label>
+                    <select id="inputProject" name="project_id" class="form-select" required="" onchange="updateRegionList()">
+                      <option value="" disabled selected hidden>Choose a project</option>
+                    </select>                    
+                    <div class="invalid-feedback">Please select a project.</div>
+                  </div>
+                  <div class="col-12"> 
+                    <label for="inputRegion" class="form-label">GCP Region:</label>
+                    <select id="inputRegion" name="region" class="form-select" required="">
+                      <option value="" disabled selected hidden>Choose a region</option>
+                    </select>
+                    <div class="invalid-feedback">Please select a region.</div>
+                  </div>
+                  <div class="text-center"> 
+                    <button class="btn btn-outline-primary btn-sm me-3" type="submit">Deploy Demo</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="setHashPath('/demos/demo-list')">Cancel</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3"></div>
+    </div>`;
+
+  // update the project list
+  updateProjectList();
+
+  // fetch the demo name from the backend
+  if (name === "") {
+
+  }
+
+  // form validation and submission
+  var form = select('#frmDemoDeploy');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (form.checkValidity()) {
+      var demo = formData2JSON(form);
+      console.log(JSON.stringify(demo));
+
+      deploy(demo);
+    } 
+    form.classList.add('was-validated')
+  }, false);
+
+  form.addEventListener('reset', function(event) {
+    form.classList.remove('was-validated')
+  }, false);
+}
+
 // show main content
 function updateMainContent(hashPath) {
   let paths = hashPath.split("/");
   let path = paths[paths.length-1];
-  if (hashPath.indexOf("demo-list") > 0) {
+  if (hashPath.indexOf("demo-list") > -1) {
     showDemoListPage();
   } 
-  else if (hashPath.indexOf("demo-onboard") > 0) {
+  else if (hashPath.indexOf("demo-onboard") > -1) {
     showDemoFormPage("Demo Onboard Form");
   } 
-  else if (hashPath.indexOf("demo-update") > 0) {
+  else if (hashPath.indexOf("demo-update") > -1) {
     showDemoFormPage("Demo Update Form", path);
+  } 
+  else if (hashPath.indexOf("demo-deploy") > -1) {
+    showDemoDeployPage("Demo Deployment Form", path);
   } 
   else {
     let label = BREADCRUMB_LABELS[path];
@@ -368,50 +455,84 @@ function deleteDemo(id) {
   }
 }
 
-// show/hide the veil 
-function toggleVeil(shown) {
-  var veil = document.getElementById("veil");
-  veil.style.display = shown ? "block" : "none";
+// deploy the demo - set path
+function deployDemo(id) {
+  setHashPath(`/demos/demo-deploy/${id}`);
 }
 
-// open a popup window for oauth2 user consent
-function openPopWindow(url, target, width, height) {
-  var top = (screen.height - height) / 2;
-  var left = (screen.width - width) / 2;
-  var position = ",width=" + width + ",height=" + height + ",top=" + top + ",left=" + left;
-  var popupWin = window.open(
-      url, target, 
-      "popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes" + position);
-  popupWin.focus();
-}
+// deploy the demo - API call
+function deploy(demo) {
+  let endpoint = DEPLOY_ENDPOINT
+    .replace("<project>", demo["project_id"])
+    .replace("<region>", demo["region"])
+    .replace("<id>", demo["demo_id"]);
 
-// deploy the demo
-function deploy(path) {    
-  // do nothing if path is undefined, null or empty
-  if (!path) return;
-
-  // result div
-  var result = document.getElementById('result');
-
-  fetch(path, {
-      method: "POST",
-      body: JSON.stringify({demoId: "test123"})
+  // deploy the demo
+  fetch(endpoint, {
+    method: "POST"
   })
   .then(async function(response) {
-      if (response.status == 401) {
-          openPopWindow("/authorize", "oauth2", 800, 600);
-          toggleVeil(true);
+      var data = await response.json();
+      if (response.ok) {
+          console.log(data.metadata.build.logUrl);
       } else {
-          var data = await response.json();
-          if (response.ok) {
-              result.innerHTML = "<a target='_blank' href='" + data.metadata.build.logUrl + "'>Click here to see the deployment in progress.</a>";
-          } else {
-              result.innerHTML = data.error.message;
-          }
+          console.log(data.error.message);
       }
   })
   .catch(error => {
-      result.innerHTML = "Error: " + error;
+    console.log(error);
+  });
+}
+
+// update the project list
+function updateProjectList() {
+  // fetch the project list
+  fetch(PROJECTS_ENDPOINT, {
+    method: "GET"
+  })
+  .then(async function(response) {
+    if (response.status == 401) {
+      openPopWindow("/authorize", "oauth2", 800, 600);
+      toggleVeil(true);
+    } else {
+      var data = await response.json();
+      if (response.ok) {
+        let selProj = select('#inputProject');
+        data.projects.forEach(el => {
+          selProj.add(new Option(el.name, el.projectId));
+        });
+      } else {
+        console.log(data.error.message);
+      }
+    }
+  })
+  .catch(error => {
+    console.log(error);
+  });
+}
+
+// update the region list
+function updateRegionList() {
+  let endpoint = REGIONS_ENDPOINT
+    .replace("<project>", select('#inputProject').value);
+
+  // fetch the region list
+  fetch(endpoint, {
+    method: "GET"
+  })
+  .then(async function(response) {
+    var data = await response.json();
+    if (response.ok) {
+      let selProj = select('#inputRegion');
+      data.regions.forEach(name => {
+        selProj.add(new Option(name, name));
+      });
+    } else {
+      console.log(data.error.message);
+    }
+  })
+  .catch(error => {
+    console.log(error);
   });
 }
 
@@ -426,24 +547,44 @@ function onHashPathChanged() {
     updateSidebarSelected();
     updateBreadcrumb(hashPath);
     updateMainContent(hashPath);
-    // deploy(hashPath);
   }
 }
 
 // popup window callback
-window.onload = function() {
-  if (window.opener != null && !window.opener.closed) {
-      window.opener.setHashPath(location.href.split("#")[1]);
-      window.opener.toggleVeil(false);
-      window.close();
-  } else {
-      console.log("onload: " + location.hash);
-      onHashPathChanged();
-  }
+function popupCallback(hashPath) {
+  console.log("popup hash: " + hashPath);
+  toggleVeil(false);
+
+  if (hashPath.indexOf("/deploy/projects") > -1) {
+    updateProjectList();
+  } 
 }
 
-// parent window - trigger on hashchange
+// onload event trigger
+window.onload = function() {
+  console.log("onload: " + location.hash);
+  onHashPathChanged();
+}
+
+// onhashchange event trigger
 window.onhashchange = function() {
   console.log("onhashchange: " + location.hash);
   onHashPathChanged();
+}
+
+// open a popup window for oauth2 user consent
+function openPopWindow(url, target, width, height) {
+  var top = (screen.height - height) / 2;
+  var left = (screen.width - width) / 2;
+  var position = ",width=" + width + ",height=" + height + ",top=" + top + ",left=" + left;
+  var popupWin = window.open(
+      url, target, 
+      "popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes" + position);
+  popupWin.focus();
+}
+
+// show/hide the veil 
+function toggleVeil(shown) {
+  var veil = document.getElementById("veil");
+  veil.style.display = shown ? "block" : "none";
 }
