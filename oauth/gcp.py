@@ -1,6 +1,6 @@
 import flask
 import requests
-from flask import current_app as app
+from flask import current_app as app, request, session
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -27,7 +27,7 @@ def _verify_oauth2_token(credentials):
 # revoke the user credentials
 def revoke():
   if 'credentials' in flask.session:
-    credentials = Credentials(**flask.session['credentials'])
+    credentials = Credentials(**session['credentials'])
 
     # call API to revoke 
     response = requests.post(
@@ -41,14 +41,17 @@ def revoke():
   #   return {'code': 200, 'message': 'Not authenticated, nothing to revoke.'}, 200
   
   # clear session
-  flask.session.clear()
+  session.clear()
   
-  # redirect to the homepage
+  # redirect to the cloud game page
   return flask.redirect("https://cloud.google.com/solutions/gaming")
-  
 
 # oauth2 user consent flow
 def authorize():
+  next_url = request.args.get("next")
+  if next_url:
+    session["next_url"] = next_url
+
   CLIENT_SECRETS_FILE = app.config["CLIENT_SECRETS_FILE"]
   SCOPES = app.config["SCOPES"]
   
@@ -62,16 +65,16 @@ def authorize():
   flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
 
   authorization_url, state = flow.authorization_url(
-      # Enable offline access so that you can refresh an access token without
-      # re-prompting the user for permission. Recommended for web server apps.
-      access_type='offline',
-      # Ask the user to consent
-      prompt='consent',
-      # Enable incremental authorization. Recommended as a best practice.
-      include_granted_scopes='true')
+    # Enable offline access so that you can refresh an access token without
+    # re-prompting the user for permission. Recommended for web server apps.
+    access_type='offline',
+    # Ask the user to consent
+    prompt='consent',
+    # Enable incremental authorization. Recommended as a best practice.
+    include_granted_scopes='true')
 
   # Store the state so the callback can verify the auth server response.
-  flask.session['state'] = state
+  session['state'] = state
 
   # app.logger.debug(f"authorize_url - {authorization_url}")
   return flask.redirect(authorization_url)
@@ -83,7 +86,7 @@ def oauth2_callback():
   
   # Specify the state when creating the flow in the callback so that it can
   # verified in the authorization server response.
-  state = flask.session['state']
+  state = session['state']
 
   flow = Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
   flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
@@ -96,11 +99,15 @@ def oauth2_callback():
   # ACTION ITEM: In a production app, you likely want to save these
   #              credentials in a persistent database instead.
   credentials = flow.credentials
-  flask.session['id_info'] = _verify_oauth2_token(credentials)
-  flask.session['credentials'] = _credentials_to_dict(credentials)
-
-  # url = flask.url_for('index') + '#' + flask.session['req_full_path']
-  url = '/popup.html#' + flask.session['req_full_path']
+  session['id_info'] = _verify_oauth2_token(credentials)
+  session['credentials'] = _credentials_to_dict(credentials)
+  
+  url = None
+  if 'next_url' in session:
+    url = session["next_url"]
+  if 'req_full_path' in session:
+    url = '/popup.html#' + session['req_full_path']
+  
   app.logger.debug(f"callback_redirect_url - {url}")
   return flask.redirect(url)
 

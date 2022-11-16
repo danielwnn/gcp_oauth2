@@ -9,7 +9,7 @@ from waitress import serve
 import logger
 from oauth import gcp
 from api import rest
-from utils import get_local_ip
+from utils import get_local_ip, authz_required
 
 # get the host and port
 APP_ENV  = os.getenv("APP_ENV", "DEV")
@@ -38,7 +38,13 @@ def create_app(config_file = "config/settings.json"):
   logger.init(app)
   
   # index endpoint
-  app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("home.html"))
+  # app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("home.html"))
+  @app.route('/')
+  @app.route('/home.html')
+  @authz_required
+  def index():
+    return app.send_static_file("home.html")
+  
   # oauth2 endpoins
   app.add_url_rule("/authorize", "authorize", view_func=gcp.authorize)
   app.add_url_rule("/oauth2callback", "oauth2callback", view_func=gcp.oauth2_callback)
@@ -118,7 +124,7 @@ def create_app(config_file = "config/settings.json"):
               "message": e.description,
             }
           })
-          response.data = f"{payload}\n"
+          response.data = f"{payload}"
           response.content_type = "application/json"
           return make_response(response, e.code)
 

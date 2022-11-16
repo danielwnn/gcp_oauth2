@@ -502,7 +502,7 @@ function deploy(demo) {
   makeAjaxRequest(endpoint, {
     method: "POST"
   }, function(result){
-    let html = `Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">here</a> for details.`;
+    let html = `Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">the link here</a> for details.`;
     addNotification(html, false);
   });
 }

@@ -20,24 +20,6 @@ a:hover {
 }
 
 /*--------------------------------------------------------------
-# Scroll bar
---------------------------------------------------------------*/
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #88c6f8 transparent;
-}
-
-*::-webkit-scrollbar {
-  width: 5px;
-  height: 8px;
-  background-color: #fff;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: #88c6f8;
-}
-
-/*--------------------------------------------------------------
 # Main
 --------------------------------------------------------------*/
 #main {
@@ -510,6 +492,18 @@ hr {
   overflow-y: auto;
   padding: 0px;
   margin: 0px; 
+  scrollbar-width: thin;
+  scrollbar-color: #88c6f8 transparent;
+}
+
+#notifications::-webkit-scrollbar {
+  width: 5px;
+  height: 8px;
+  background-color: #fff;
+}
+
+#notifications::-webkit-scrollbar-thumb {
+  background-color: #88c6f8;
 }
 
 .header-nav .notifications .notification-item {
@@ -600,7 +594,19 @@ hr {
   padding: 10px;
   overflow-y: auto;
   background-color: #fff;
+  scrollbar-width: thin;
+  scrollbar-color: #88c6f8 transparent;
   box-shadow: 0px 0px 10px 0 rgba(0, 0, 0, .07);
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 5px;
+  height: 8px;
+  background-color: #fff;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #88c6f8;
 }
 
 @media (max-width: 1199px) {
