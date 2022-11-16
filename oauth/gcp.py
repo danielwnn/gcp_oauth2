@@ -44,7 +44,7 @@ def revoke():
   flask.session.clear()
   
   # redirect to the homepage
-  return flask.redirect("/")
+  return flask.redirect("https://cloud.google.com/solutions/gaming")
   
 
 # oauth2 user consent flow

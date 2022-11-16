@@ -63,6 +63,8 @@ def create_app(config_file = "config/settings.json"):
   # log before every request
   @app.before_request
   def log_request():
+    if request.full_path[-1] == "?": 
+      request.full_path = request.full_path[:-1]
     if _notStatic(request.full_path):
       app.logger.info(
         "%s %s %s %s %s",

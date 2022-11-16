@@ -354,12 +354,12 @@ function showDemoDeployPage(title, demoId) {
                 <form id="frmDemoDeploy" name="frmDemoDeploy" class="row g-3 needs-validation" novalidate="" onsubmit="return false;">  
                   <input name="demo_id" value="${demoId}" type="hidden">
                   <div class="col-12"> 
-                    <label for="inputName" class="form-label">Demo Name (read-only):</label>
-                    <input id="inputName" name="name" value="${name}" type="text" class="form-control" readonly="true">
+                    <label for="inputName" class="form-label">Demo Name:</label>
+                    <div id="inputName" class="form-control">${name}</div>
                   </div>
                   <div class="col-12"> 
                     <label for="inputProject" class="form-label">GCP Project:</label>
-                    <select id="inputProject" name="project_id" class="form-select" required="" onchange="updateRegionList()">
+                    <select id="inputProject" name="project_id" class="form-select" required="" onchange="updateRegionList(this.value)">
                       <option value="" disabled selected hidden>Choose a project</option>
                     </select>                    
                     <div class="invalid-feedback">Please select a project.</div>
@@ -370,6 +370,16 @@ function showDemoDeployPage(title, demoId) {
                       <option value="" disabled selected hidden>Choose a region</option>
                     </select>
                     <div class="invalid-feedback">Please select a region.</div>
+                  </div>
+                  <div class="col-12"> 
+                    <input class="form-check-input" id="inputAgree" name="agree" type="checkbox" value="yes" required=""> <label class="form-check-label" for="invalidCheck"> Agree to Terms and Conditions </label>
+                    <div class="invalid-feedback">You must agree before deploying.</div>
+                    <div class="disclaimer form-control">
+                      Google Cloud grants you a non-exclusive copyright license to use all programming code examples from which you can generate similar function tailored to your own specific needs.<br/><br/>
+                      SUBJECT TO ANY STATUTORY WARRANTIES WHICH CANNOT BE EXCLUDED, GOOGLE CLOUD, ITS PROGRAM DEVELOPERS AND SUPPLIERS MAKE NO WARRANTIES OR CONDITIONS EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OR CONDITIONS OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT, REGARDING THE PROGRAM OR TECHNICAL SUPPORT, IF ANY.<br/><br/>
+                      UNDER NO CIRCUMSTANCES IS GOOGLE CLOUD, ITS PROGRAM DEVELOPERS OR SUPPLIERS LIABLE FOR ANY OF THE FOLLOWING, EVEN IF INFORMED OF THEIR POSSIBILITY:<br/><br/> 1. LOSS OF, OR DAMAGE TO, DATA;<br/>2. DIRECT, SPECIAL, INCIDENTAL, OR INDIRECT DAMAGES, OR FOR ANY ECONOMIC CONSEQUENTIAL DAMAGES; OR<br/>3. LOST PROFITS, BUSINESS, REVENUE, GOODWILL, OR ANTICIPATED SAVINGS.<br/><br/>
+                      SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF DIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, SO SOME OR ALL OF THE ABOVE LIMITATIONS OR EXCLUSIONS MAY NOT APPLY TO YOU.
+                    </div>
                   </div>
                   <div class="text-center"> 
                     <button class="btn btn-outline-primary btn-sm me-3" type="submit">Deploy Demo</button>
@@ -460,6 +470,27 @@ function deployDemo(id) {
   setHashPath(`/demos/demo-deploy/${id}`);
 }
 
+// helper for making Ajax Request
+function makeAjaxRequest(endpoint, data, callback) {
+  fetch(endpoint, data)
+  .then(async function(response) {
+    if (response.status == 401) {
+      openPopWindow("/authorize", "oauth2", 800, 600);
+      toggleVeil(true);
+    } else {
+      var result = await response.json();
+      if (response.ok) {
+        callback(result);
+      } else {
+        addNotification(result.error.message, true);
+      }
+    }
+  })
+  .catch(error => {
+    addNotification(error, true);
+  });
+}
+
 // deploy the demo - API call
 function deploy(demo) {
   let endpoint = DEPLOY_ENDPOINT
@@ -468,71 +499,38 @@ function deploy(demo) {
     .replace("<id>", demo["demo_id"]);
 
   // deploy the demo
-  fetch(endpoint, {
+  makeAjaxRequest(endpoint, {
     method: "POST"
-  })
-  .then(async function(response) {
-      var data = await response.json();
-      if (response.ok) {
-          console.log(data.metadata.build.logUrl);
-      } else {
-          console.log(data.error.message);
-      }
-  })
-  .catch(error => {
-    console.log(error);
+  }, function(result){
+    let html = `Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">here</a> for details.`;
+    addNotification(html, false);
   });
 }
 
 // update the project list
 function updateProjectList() {
-  // fetch the project list
-  fetch(PROJECTS_ENDPOINT, {
+  makeAjaxRequest(PROJECTS_ENDPOINT, {
     method: "GET"
-  })
-  .then(async function(response) {
-    if (response.status == 401) {
-      openPopWindow("/authorize", "oauth2", 800, 600);
-      toggleVeil(true);
-    } else {
-      var data = await response.json();
-      if (response.ok) {
-        let selProj = select('#inputProject');
-        data.projects.forEach(el => {
-          selProj.add(new Option(el.name, el.projectId));
-        });
-      } else {
-        console.log(data.error.message);
-      }
-    }
-  })
-  .catch(error => {
-    console.log(error);
+  }, function(result){
+    let selProj = select('#inputProject');
+    result.projects.forEach(el => {
+      selProj.add(new Option(el.name, el.projectId));
+    });
   });
 }
 
 // update the region list
-function updateRegionList() {
+function updateRegionList(project) {
   let endpoint = REGIONS_ENDPOINT
-    .replace("<project>", select('#inputProject').value);
+    .replace("<project>", project);
 
-  // fetch the region list
-  fetch(endpoint, {
+  makeAjaxRequest(endpoint, {
     method: "GET"
-  })
-  .then(async function(response) {
-    var data = await response.json();
-    if (response.ok) {
-      let selProj = select('#inputRegion');
-      data.regions.forEach(name => {
-        selProj.add(new Option(name, name));
-      });
-    } else {
-      console.log(data.error.message);
-    }
-  })
-  .catch(error => {
-    console.log(error);
+  }, function(result){
+    let selProj = select('#inputRegion');
+    result.regions.forEach(name => {
+      selProj.add(new Option(name, name));
+    });
   });
 }
 
@@ -555,9 +553,21 @@ function popupCallback(hashPath) {
   console.log("popup hash: " + hashPath);
   toggleVeil(false);
 
-  if (hashPath.indexOf("/deploy/projects") > -1) {
-    updateProjectList();
+  if (hashPath.search(/\/deploy\/projects\/.+\/regions\/.+\/demos\/.+/i) > -1) { // deploy
+    let matches = hashPath.match(/\/deploy\/projects\/(.+)\/regions\/(.+)\/demos\/(.+)/i);
+    deploy({
+      project_id: matches[1],
+      region: matches[2],
+      demo_id: matches[3]
+    });
   } 
+  else if (hashPath.search(/\/deploy\/projects\/.+\/regions/i) > -1) { // regions
+    let matches = hashPath.match(/\/deploy\/projects\/(.+)\/regions/i);
+    updateRegionList(matches[1]);
+  } 
+  else if (hashPath.search(/\/deploy\/projects/i) > -1) { // projects
+    updateProjectList();
+  }
 }
 
 // onload event trigger
@@ -581,6 +591,41 @@ function openPopWindow(url, target, width, height) {
       url, target, 
       "popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes" + position);
   popupWin.focus();
+}
+
+// the notification message count
+let notifCount = 0;
+
+// add a new notification message
+function addNotification(message, isError) {
+  let el = select('#notifications');
+  let html = 
+    `<li>
+      <hr class="dropdown-divider">
+    </li>
+    <li class="notification-item">
+      <i class="bi ${isError ? 'bi-x-circle' : 'bi-check-circle'} ${isError ? 'text-danger' : 'text-success'}"></i>
+      <p>${message}</p>
+    </li>`;
+  el.insertAdjacentHTML("afterbegin", html);
+  notifCount++;
+  select('#notifCount').innerHTML = notifCount;
+  select('#notifSummary').innerHTML = `You have ${notifCount} notifications.`;
+  select('#notifClearAll').disabled = false;
+}
+
+// clear all notification messages
+function clearAllNotifications() {
+  let el = select('#notifications');
+  let children = el.children;
+  for (let i=children.length-1; i > 0; i--){
+    el.removeChild(children[i])
+  }
+  select('#notifClearAll').disabled = true;
+  select('#notifSummary').innerHTML = "You have no notifications.";
+  select('#notifCount').innerHTML = "";
+  notifCount = 0;
+  return false;
 }
 
 // show/hide the veil 
