@@ -1,15 +1,16 @@
 import os
 import json
-import logging
-from werkzeug.exceptions import HTTPException
-from flask import Flask, request, make_response
 from waitress import serve
+from google.cloud import bigquery
+from werkzeug.exceptions import HTTPException
+from google.oauth2.credentials import Credentials
+from flask import Flask, request, session, make_response, render_template
 
 # local modules
 import logger
 from oauth import gcp
 from api import rest
-from utils import get_local_ip, authz_required
+from utils.helper import get_local_ip, authz_required
 
 # get the host and port
 APP_ENV  = os.getenv("APP_ENV", "DEV")
@@ -26,7 +27,38 @@ def _isDev():
 def _notStatic(path):
   return ("/img/" not in path) and ("/css/" not in path) and ("/js/" not in path) and ("/vendor/" not in path)
 
+# init API endpoints
+def _init_endpoints(app):
+  # index endpoint
+  # app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("home.html"))
+  @app.route('/')
+  @app.route('/home.html')
+  @authz_required
+  def index():
+    id_info = session['id_info']
+    return render_template("home_tpl.html", 
+      name=id_info["name"], email=id_info["email"], picture=id_info["picture"])
+  
+  # oauth2 endpoins
+  app.add_url_rule("/authorize", "authorize", view_func=gcp.authorize)
+  app.add_url_rule("/oauth2callback", "oauth2callback", view_func=gcp.oauth2_callback)
+  app.add_url_rule("/revoke", "revoke", view_func=gcp.revoke)
+  
+  # deploy endpoints
+  app.add_url_rule("/deploy/projects", "getProjects", methods=["GET"], view_func=rest.getProjects)
+  app.add_url_rule("/deploy/projects/<project>/regions", "getRegions", methods=["GET"], view_func=rest.getRegions)
+  app.add_url_rule("/deploy/projects/<project>/regions/<region>/demos/<id>", "deploy", methods=["POST"], view_func=rest.deploy)
+  
+  # demo endpoints
+  app.add_url_rule("/demos", "getDemoList", methods=["GET"], view_func=rest.getDemoList)
+  app.add_url_rule("/demos/<id>", "getDemo", methods=["GET"], view_func=rest.getDemo)
+  app.add_url_rule("/demos", "createDemo", methods=["POST"], view_func=rest.createDemo)
+  app.add_url_rule("/demos/<id>", "updateDemo", methods=["PUT"], view_func=rest.updateDemo)
+  app.add_url_rule("/demos/<id>", "deleteDemo", methods=["DELETE"], view_func=rest.deleteDemo)
+  
+###########################################################
 # the app factory function
+######
 def create_app(config_file = "config/settings.json"):
   # Create Flask app
   app = Flask(__name__, static_url_path="/", static_folder="static")
@@ -37,34 +69,23 @@ def create_app(config_file = "config/settings.json"):
     os.mkdir(APP_LOG_DIR)
   logger.init(app)
   
-  # index endpoint
-  # app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("home.html"))
-  @app.route('/')
-  @app.route('/home.html')
-  @authz_required
-  def index():
-    return app.send_static_file("home.html")
-  
-  # oauth2 endpoins
-  app.add_url_rule("/authorize", "authorize", view_func=gcp.authorize)
-  app.add_url_rule("/oauth2callback", "oauth2callback", view_func=gcp.oauth2_callback)
-  app.add_url_rule("/revoke", "revoke", view_func=gcp.revoke)
-  # deploy endpoints
-  app.add_url_rule("/deploy/projects", "getProjects", methods=["GET"], view_func=rest.getProjects)
-  app.add_url_rule("/deploy/projects/<project>/regions", "getRegions", methods=["GET"], view_func=rest.getRegions)
-  app.add_url_rule("/deploy/projects/<project>/regions/<region>/demos/<id>", "deploy", methods=["POST"], view_func=rest.deploy)
-   # demo endpoints
+  # init endpoints
+  _init_endpoints(app)
 
   # run after the app starts
   with app.app_context():
-    # not used so far
-    dummy = 1 
+    dummy = 1
       
   # run before the first request
   @app.before_first_request
   def before_first_request():
-    # not used so far
-    dummy = 1
+    # init BQ client
+    project_id = app.config["PROJECT_ID"]
+    if _isDev() and 'credentials' in session:
+      credentials = Credentials(**session['credentials'])
+      app.bq_client = bigquery.Client(project=project_id, credentials=credentials)
+    else:
+      app.bq_client = bigquery.Client(project=project_id)
     
   # log before every request
   @app.before_request
@@ -132,8 +153,7 @@ def create_app(config_file = "config/settings.json"):
       response_body = {
         "error": {
           "code": 500, 
-          "message": "Unhandled exception occurred.", 
-          "details": str(e)
+          "message": str(e)
         }
       }
       return make_response(response_body, 500)

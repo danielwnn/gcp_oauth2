@@ -3,6 +3,11 @@
 let PROJECTS_ENDPOINT = "/deploy/projects";
 let REGIONS_ENDPOINT  = "/deploy/projects/<project>/regions";
 let DEPLOY_ENDPOINT   = "/deploy/projects/<project>/regions/<region>/demos/<id>";
+let DEMO_LIST   = "/demos"
+let DEMO_GET    = "/demos/<id>"
+let DEMO_CREATE = "/demos"
+let DEMO_UPDATE = "/demos/<id>"
+let DEMO_DELETE = "/demos/<id>"
 
 // Public Domain / MIT
 function generateUUID() { 
@@ -119,9 +124,9 @@ let BREADCRUMB_LABELS = {
   "demos": "Demos",
   "demo-list": "Demo List",
   "my-demos": "My Demos",
-  "demo-onboard": "Demo Onboard",
-  "demo-update" : "Demo Update",
-  "demo-deploy" : "Demo Deployment",
+  "demo-onboard": "Onboard Demo",
+  "demo-update" : "Update Demo",
+  "demo-deploy" : "Deploy Demo",
   "oss": "OSS",
   "agones": "Agones",
   "open-match": "Open Match",
@@ -224,29 +229,51 @@ function showDemoListPage() {
     setHashPath("/demos/demo-onboard");
   });
   
-  showDemoList();
+  // fetch the demo list if empty
+  if (demoList.length === 0) {
+    makeAjaxRequest(
+      DEMO_LIST, 
+      null, 
+      function(result) {
+        demoList = result["demos"];
+        showDemoList();
+      }
+    );
+  } else {
+    showDemoList();
+  }
 }
 
 // show the Demo Form page
 function showDemoFormPage(title, demoId) {
-  let id = "",
-      name = "", 
-      contact = "",
-      description = "",
-      repository_url = "",
-      deploy_url = "",
-      undeploy_url = "";
-  let demo = demoId ? getDemoById(demoId) : null;
-  if (demo) {
-    let demo = getDemoById(demoId);
-    id = demo["id"];
-    name = demo["name"];
-    contact = demo["contact"];
-    description = demo["description"];
-    repository_url = demo["repository_url"];
-    deploy_url = demo["deploy_url"];
-    undeploy_url = demo["undeploy_url"];
+  let demo = {
+    id: "",
+    name: "", 
+    contact: "",
+    description: "",
+    repository_url: "",
+    deploy_url: "",
+    undeploy_url: ""
+  };
+  if (demoId) { // update demo
+    demo = getDemoById(demoId);
+    if (demo) { // local cache
+      showDemoForm(title, demo);
+    } else {    // page reload
+      let endpoint = DEMO_GET.replace("<id>", demoId);
+      makeAjaxRequest(endpoint, {
+        method: "GET"
+      }, function(result){
+        showDemoForm(title, result);
+      });
+    }
+  } else { // new demo
+    showDemoForm(title, demo);
   }
+}
+
+// show the demo form
+function showDemoForm(title, demo) {
   select('#mainContent').innerHTML = 
     `<div class="row">
       <div class="col-lg-3"></div>
@@ -261,40 +288,40 @@ function showDemoFormPage(title, demoId) {
             <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordion">
               <div class="accordion-body"> 
                 <form id="frmDemoInfo" name="frmDemoInfo" class="row g-3 needs-validation" novalidate="" onsubmit="return false;">  
-                  <input name="id" value="${id}" type="hidden">
+                  <input name="id" value="${demo["id"]}" type="hidden">
                   <div class="col-12"> 
-                    <label for="inputName" class="form-label">Name / Title:</label>
-                    <input id="inputName" name="name" value="${name}" type="text" class="form-control" required="">
+                    <label for="inputName" class="form-label">Demo Name / Title:</label>
+                    <input id="inputName" name="name" value="${demo["name"]}" type="text" class="form-control" required="">
                     <div class="invalid-feedback">Please provide a name / title.</div>
                   </div>
                   <div class="col-12"> 
-                    <label for="inputContact" class="form-label">Contacts:</label>
-                    <input id="inputContact" name="contact" value="${contact}" type="text" class="form-control" placeholder="alias@google.com, alias" required="">
+                    <label for="inputContact" class="form-label">Demo Owner Aliases:</label>
+                    <input id="inputContact" name="contact" value="${demo["contact"]}" type="text" class="form-control" placeholder="alias@google.com, alias" required="">
                     <div class="invalid-feedback">Please provide alias or email separated by comma.</div>
                   </div>
                   <div class="col-12"> 
                     <label for="inputDescription" class="form-label">Description:</label>
-                    <textarea id="inputDescription" name="description" class="form-control" required="">${description}</textarea>
+                    <textarea id="inputDescription" name="description" class="form-control" required="">${demo["description"]}</textarea>
                     <div class="invalid-feedback">Please provide a description.</div>
                   </div>
                   <div class="col-12"> 
                     <label for="inputRepoUrl" class="form-label">Github Repo URL:</label>
-                    <input id="inputRepoUrl" name="repository_url" value="${repository_url}" type="text" class="form-control" required="">
+                    <input id="inputRepoUrl" name="repository_url" value="${demo["repository_url"]}" type="text" class="form-control" required="">
                     <div class="invalid-feedback">Please provide the Github repository URL.</div>
                   </div>
                   <div class="col-12"> 
                     <label for="inputDeployUrl" class="form-label">Deploy Script URL:</label>
-                    <input id="inputDeployUrl" name="deploy_url" value="${deploy_url}" type="text" class="form-control" required="">
+                    <input id="inputDeployUrl" name="deploy_url" value="${demo["deploy_url"]}" type="text" class="form-control" required="">
                     <div class="invalid-feedback">Please provide the deploy script URL.</div>
                   </div>
                   <div class="col-12"> 
                     <label for="inputUndeployUrl" class="form-label">Undeploy Script URL:</label>
-                    <input id="inputUndeployUrl" name="undeploy_url" value="${undeploy_url}" type="text" class="form-control" placeholder="Nice to have">
+                    <input id="inputUndeployUrl" name="undeploy_url" value="${demo["undeploy_url"]}" type="text" class="form-control" placeholder="Nice to have">
                     <div class="invalid-feedback">Please provide the deploy script URL.</div>
                   </div>
                   <div class="text-center"> 
                     <button class="btn btn-outline-primary btn-sm me-3" type="submit">Save Demo</button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="setHashPath('/demos/demo-list')">Cancel</button>
+                    <button class="btn btn-outline-secondary btn-sm" type="reset">Cancel</button>
                   </div>
                 </form>
               </div>
@@ -311,32 +338,45 @@ function showDemoFormPage(title, demoId) {
     event.preventDefault();
     event.stopPropagation();
     if (form.checkValidity()) {
-      var jsonObj = formData2JSON(form);
-      if (jsonObj["id"] === "") { // new demo
-        var uuid = generateUUID();
-        jsonObj["id"] = uuid;
-        demoList.push(jsonObj);
+      var demo = formData2JSON(form);
+      if (demo["id"] === "") { // new demo
+        demo["id"] = generateUUID();
+        makeAjaxRequest(DEMO_CREATE, {
+          method: "POST",
+          body: JSON.stringify(demo)
+        }, function(result){
+          demoList.push(demo);
+          setHashPath("/demos/demo-list");
+          let html = `The demo - ${demo.name} has been created successfully.`;
+          addNotification(html, false);
+        });
       } else {  // update demo
-        updateDemoList(jsonObj);
+        let endpoint = DEMO_UPDATE.replace("<id>", demo["id"]);
+        makeAjaxRequest(endpoint, {
+          method: "PUT",
+          body: JSON.stringify(demo)
+        }, function(result){
+          updateDemoList(demo);
+          setHashPath("/demos/demo-list");
+          let html = `The demo - ${demo.name} has been updated successfully.`;
+          addNotification(html, false);
+        });
       }
-      console.log(JSON.stringify(jsonObj));
-      setHashPath("/demos/demo-list");
-      
-      // select('#collapseOne').classList.remove('show');
-      // select('.accordion-button').classList.remove('collapsed');
+      console.log(JSON.stringify(demo));
     } 
     form.classList.add('was-validated')
   }, false);
 
   form.addEventListener('reset', function(event) {
-    form.classList.remove('was-validated')
+    form.classList.remove('was-validated');
+    setHashPath('/demos/demo-list');
   }, false);
 }
 
 // show the Demo deployment page
 function showDemoDeployPage(title, demoId) {
-  let demo = getDemoById(demoId);
   let name = "";
+  let demo = getDemoById(demoId);
   if (demo) name = demo["name"];
   select('#mainContent').innerHTML = 
     `<div class="row">
@@ -383,7 +423,7 @@ function showDemoDeployPage(title, demoId) {
                   </div>
                   <div class="text-center"> 
                     <button class="btn btn-outline-primary btn-sm me-3" type="submit">Deploy Demo</button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="setHashPath('/demos/demo-list')">Cancel</button>
+                    <button class="btn btn-outline-secondary btn-sm" type="reset">Cancel</button>
                   </div>
                 </form>
               </div>
@@ -397,9 +437,14 @@ function showDemoDeployPage(title, demoId) {
   // update the project list
   updateProjectList();
 
-  // fetch the demo name from the backend
+  // fetch the demo name for page reload
   if (name === "") {
-
+    let endpoint = DEMO_GET.replace("<id>", demoId);
+    makeAjaxRequest(endpoint, {
+      method: "GET"
+    }, function(result){
+      select('#inputName').innerHTML = result["name"];
+    });
   }
 
   // form validation and submission
@@ -409,15 +454,15 @@ function showDemoDeployPage(title, demoId) {
     event.stopPropagation();
     if (form.checkValidity()) {
       var demo = formData2JSON(form);
-      console.log(JSON.stringify(demo));
-
       deploy(demo);
+      console.log(JSON.stringify(demo));
     } 
-    form.classList.add('was-validated')
+    form.classList.add('was-validated');
   }, false);
 
   form.addEventListener('reset', function(event) {
-    form.classList.remove('was-validated')
+    form.classList.remove('was-validated');
+    setHashPath('/demos/demo-list');
   }, false);
 }
 
@@ -451,27 +496,22 @@ function updateMainContent(hashPath) {
   }
 }
 
-// update the demo
-function updateDemo(id) {
-  setHashPath(`/demos/demo-update/${id}`);
-}
-
-// delete the demo 
-function deleteDemo(id) {
-  let demo = getDemoById(id);
-  if (confirm(`Do you want to delete the demo - ${demo.name}?`)) {
-    demoList = demoList.filter(item => item.id !== id);
-    showDemoList();
-  }
-}
-
-// deploy the demo - set path
-function deployDemo(id) {
-  setHashPath(`/demos/demo-deploy/${id}`);
-}
-
 // helper for making Ajax Request
 function makeAjaxRequest(endpoint, data, callback) {
+  if (data) {
+    if (!data["headers"]) {
+      data["headers"] = {
+        'Content-Type': 'application/json'
+      };
+    }
+  } else {
+    data = {
+      methd: "GET", 
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+  }
   fetch(endpoint, data)
   .then(async function(response) {
     if (response.status == 401) {
@@ -491,6 +531,32 @@ function makeAjaxRequest(endpoint, data, callback) {
   });
 }
 
+// update the demo
+function updateDemo(id) {
+  setHashPath(`/demos/demo-update/${id}`);
+}
+
+// delete the demo 
+function deleteDemo(id) {
+  let demo = getDemoById(id);
+  if (confirm(`Do you want to delete the demo - ${demo.name}?`)) {
+    let endpoint = DEMO_DELETE.replace("<id>", id);
+    makeAjaxRequest(endpoint, {
+      method: "DELETE"
+    }, function(result){
+      demoList = demoList.filter(item => item.id !== id);
+      showDemoList();
+      let html = `The demo - ${demo.name} has been deleted successfully.`;
+      addNotification(html, false);
+    });
+  }
+}
+
+// deploy the demo - set path
+function deployDemo(id) {
+  setHashPath(`/demos/demo-deploy/${id}`);
+}
+
 // deploy the demo - API call
 function deploy(demo) {
   let endpoint = DEPLOY_ENDPOINT
@@ -508,22 +574,29 @@ function deploy(demo) {
 }
 
 // update the project list
+let projectList = [];
 function updateProjectList() {
-  makeAjaxRequest(PROJECTS_ENDPOINT, {
-    method: "GET"
-  }, function(result){
+  if (projectList.length === 0) {
+    makeAjaxRequest(PROJECTS_ENDPOINT, {
+      method: "GET"
+    }, function(result){
+      projectList = result.projects;
+      let selProj = select('#inputProject');
+      projectList.forEach(el => {
+        selProj.add(new Option(el.name, el.projectId));
+      });
+    });
+  } else {
     let selProj = select('#inputProject');
-    result.projects.forEach(el => {
+    projectList.forEach(el => {
       selProj.add(new Option(el.name, el.projectId));
     });
-  });
+  }
 }
 
 // update the region list
 function updateRegionList(project) {
-  let endpoint = REGIONS_ENDPOINT
-    .replace("<project>", project);
-
+  let endpoint = REGIONS_ENDPOINT.replace("<project>", project);
   makeAjaxRequest(endpoint, {
     method: "GET"
   }, function(result){
@@ -618,7 +691,7 @@ function addNotification(message, isError) {
 function clearAllNotifications() {
   let el = select('#notifications');
   let children = el.children;
-  for (let i=children.length-1; i > 0; i--){
+  for (let i=children.length-1; i >= 0; i--){
     el.removeChild(children[i])
   }
   select('#notifClearAll').disabled = true;

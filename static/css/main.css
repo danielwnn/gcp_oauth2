@@ -475,7 +475,6 @@ hr {
 }
 
 .header-nav .notifications {
-  width: 360px;
   inset: 8px -15px auto auto !important;
   padding: 5px 0 0 0;
 }
@@ -487,6 +486,7 @@ hr {
 }
 
 .header-nav .notifications #notifications {
+  width: 320px;
   max-height: 550px;
   overflow-x: hidden;
   overflow-y: auto;
