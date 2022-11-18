@@ -1,16 +1,15 @@
 import os
 import json
 from waitress import serve
-from google.cloud import bigquery
 from werkzeug.exceptions import HTTPException
-from google.oauth2.credentials import Credentials
 from flask import Flask, request, session, make_response, render_template
 
 # local modules
 import logger
 from oauth import gcp
 from api import rest
-from utils.helper import get_local_ip, authz_required
+from datastore import sql
+from utils.helper import is_dev, not_static, get_local_ip, authz_required
 
 # get the host and port
 APP_ENV  = os.getenv("APP_ENV", "DEV")
@@ -18,14 +17,6 @@ APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = os.getenv("APP_PORT", 8080)
 APP_CORS = os.getenv("APP_CORS", f"http://localhost:{APP_PORT}")
 APP_LOG_DIR = os.getenv("APP_LOG_DIR", "logs")
-
-# check if DEV
-def _isDev():
-  return (APP_ENV == "DEV")
-
-# check if non-static resources
-def _notStatic(path):
-  return ("/img/" not in path) and ("/css/" not in path) and ("/js/" not in path) and ("/vendor/" not in path)
 
 # init API endpoints
 def _init_endpoints(app):
@@ -59,7 +50,12 @@ def _init_endpoints(app):
 ###########################################################
 # the app factory function
 ######
-def create_app(config_file = "config/settings.json"):
+def create_app():
+  # config file
+  config_file = "config/settings.json"
+  if is_dev():
+    config_file = "config/settings-local.json"
+  
   # Create Flask app
   app = Flask(__name__, static_url_path="/", static_folder="static")
   app.config.from_file(config_file, load=json.load)
@@ -74,25 +70,21 @@ def create_app(config_file = "config/settings.json"):
 
   # run after the app starts
   with app.app_context():
-    dummy = 1
+    # seed the db tables
+    app.db_conn_pool = sql.get_db_conn_pool()
+    sql.create_tables(app.db_conn_pool.connection())
       
   # run before the first request
   @app.before_first_request
   def before_first_request():
-    # init BQ client
-    project_id = app.config["PROJECT_ID"]
-    if _isDev() and 'credentials' in session:
-      credentials = Credentials(**session['credentials'])
-      app.bq_client = bigquery.Client(project=project_id, credentials=credentials)
-    else:
-      app.bq_client = bigquery.Client(project=project_id)
+    dummy = 1
     
   # log before every request
   @app.before_request
   def log_request():
     if request.full_path[-1] == "?": 
       request.full_path = request.full_path[:-1]
-    if _notStatic(request.full_path):
+    if not_static(request.full_path):
       app.logger.info(
         "%s %s %s %s %s",
         request.environ.get("SERVER_PROTOCOL"),
@@ -118,7 +110,7 @@ def create_app(config_file = "config/settings.json"):
       # response_body = json.dumps(response.get_json())
       # if (response_body == "null"):
       #   response_body = ""
-      if _notStatic(request.full_path):
+      if not_static(request.full_path):
         app.logger.info(
             "%s %s %s %s %s",
             request.environ.get("SERVER_PROTOCOL"),
@@ -174,13 +166,13 @@ def main():
   app.logger.info(f"App is running on http://{APP_HOST}:{APP_PORT}")
   app.logger.info(f"App is running on http://{get_local_ip()}:{APP_PORT}")
 
-  if _isDev():
+  if is_dev():
     app.run(
       threaded = True,
       host = APP_HOST, 
       port = APP_PORT, 
       # request_handler=logger.MyRequestHandler,
-      debug = _isDev() 
+      debug = is_dev() 
     )
   else:
     # Use waitress for production deployment

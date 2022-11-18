@@ -347,7 +347,7 @@ function showDemoForm(title, demo) {
         }, function(result){
           demoList.push(demo);
           setHashPath("/demos/demo-list");
-          let html = `The demo - ${demo.name} has been created successfully.`;
+          let html = `<b>${new Date().toLocaleString()}</b>: The demo - ${demo.name} has been created successfully.`;
           addNotification(html, false);
         });
       } else {  // update demo
@@ -358,7 +358,7 @@ function showDemoForm(title, demo) {
         }, function(result){
           updateDemoList(demo);
           setHashPath("/demos/demo-list");
-          let html = `The demo - ${demo.name} has been updated successfully.`;
+          let html = `<b>${new Date().toLocaleString()}</b>: The demo - ${demo.name} has been updated successfully.`;
           addNotification(html, false);
         });
       }
@@ -546,7 +546,7 @@ function deleteDemo(id) {
     }, function(result){
       demoList = demoList.filter(item => item.id !== id);
       showDemoList();
-      let html = `The demo - ${demo.name} has been deleted successfully.`;
+      let html = `<b>${new Date().toLocaleString()}</b>: The demo - ${demo.name} has been deleted successfully.`;
       addNotification(html, false);
     });
   }
@@ -568,7 +568,7 @@ function deploy(demo) {
   makeAjaxRequest(endpoint, {
     method: "POST"
   }, function(result){
-    let html = `Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">the link here</a> for details.`;
+    let html = `<b>${new Date().toLocaleString()}</b>: Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">this link</a> for details.`;
     addNotification(html, false);
   });
 }

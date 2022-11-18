@@ -14,6 +14,14 @@ HTTP_200 = ({"status": {"code": 200, "message": "Success."}}, 200)
 # 401 response
 HTTP_401 = ({"error": {"code": 401, "message": "Unauthenticated."}}, 401)
 
+# check if DEV
+def is_dev():
+  return "DEV" == os.getenv("APP_ENV", "DEV")
+
+# check if non-static resources
+def not_static(path):
+  return ("/img/" not in path) and ("/css/" not in path) and ("/js/" not in path) and ("/vendor/" not in path)
+
 # decorator role_required
 def role_required(role):
   def decorator(func):
@@ -44,6 +52,13 @@ def get_local_ip():
     if (address[0] != 'None' and address[0] != '127.0.0.1'):
       return address[0]
   return '127.0.0.1'
+
+# get the user email
+def get_user_email():
+  if 'id_info' in session:
+    return session['id_info']['email']
+  else:
+    return ""
 
 # helper to make http request
 def makeHttpRequest(endpoint, method, headers, payload, func):  
@@ -80,17 +95,4 @@ def makeHttpRequest(endpoint, method, headers, payload, func):
       return result, status_code
 
   return HTTP_401
-
-# make BigQuery call
-def makeBigQueryCall(query_string, func):  
-  try:      
-    client = app.bq_client
-    job = client.query(query_string)
-    results = job.result()
-    
-    if (func):
-      return func(results), 200
-    else:
-      return HTTP_200
-  except Unauthenticated:
-    return HTTP_401
+  

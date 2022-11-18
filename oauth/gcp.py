@@ -3,7 +3,6 @@ import flask
 import requests
 from flask import current_app as app, request, session
 
-from google.cloud import bigquery
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
@@ -104,13 +103,7 @@ def oauth2_callback():
   session['id_info'] = _verify_oauth2_token(credentials)
   session['credentials'] = _credentials_to_dict(credentials)
   
-  # init BQ client
-  project_id = app.config["PROJECT_ID"]
-  if "DEV" == os.getenv("APP_ENV", "DEV"):
-    app.bq_client = bigquery.Client(project=project_id, credentials=credentials)
-  else:
-    app.bq_client = bigquery.Client(project=project_id)
-  
+  # redirect url
   url = None
   if 'next_url' in session:
     url = session["next_url"]
@@ -118,5 +111,6 @@ def oauth2_callback():
     url = '/popup.html#' + session['req_full_path']
   
   app.logger.debug(f"callback_redirect_url - {url}")
+  
   return flask.redirect(url)
 

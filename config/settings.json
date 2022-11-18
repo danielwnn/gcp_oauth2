@@ -1,7 +1,6 @@
 {
     "SECRET_KEY": "fd3c066f550710e52ac3854c6687f02de6311d97da202f29ab6e948222e10dd4",
     "CLIENT_SECRETS_FILE": "client_secret.json",
-    "CLOUD_BUILD_YAML": "cloudbuild.yaml",
     "PROJECT_ID": "cloud-sandbox-danielw",
     "LOCATION": "us-central1",
     "SCOPES": [

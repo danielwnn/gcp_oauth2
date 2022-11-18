@@ -486,7 +486,7 @@ hr {
 }
 
 .header-nav .notifications #notifications {
-  width: 320px;
+  width: 400px;
   max-height: 550px;
   overflow-x: hidden;
   overflow-y: auto;

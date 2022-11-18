@@ -5,7 +5,10 @@ logs/
 app_old.py
 client_secret.json
 test.py
+local.py
 new.html
 static/img/profile_ph.jpg
+config/settings-local.json
+
 
 
