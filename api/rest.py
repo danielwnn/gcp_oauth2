@@ -50,13 +50,13 @@ def deploy(project, region, id):
   result, status_code = makeHttpRequest(endpoint, "POST", None, payload, None)
   if (status_code == 200):
     data = {
-      "id": id,
+      "id": (request.json)["deploy_id"],
+      "demo_id": id,
       "project_id": project,
       "region": region,
       "email": get_user_email(),
       "log_url": result["metadata"]["build"]["logUrl"]
     }
-    app.logger.debug(f"deployment -> {data}")
     sql.createDeployment(data)
   
   return result, status_code

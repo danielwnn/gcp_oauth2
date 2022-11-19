@@ -18,8 +18,10 @@ _queries = [
         status VARCHAR(256) DEFAULT 'ACTIVE',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=INNODB;""",
+    "DROP TABLE deployment",
     """CREATE TABLE IF NOT EXISTS deployment (
         id VARCHAR(36),
+        demo_id VARCHAR(36),
         email VARCHAR(128),
         project_id VARCHAR(128),
         region VARCHAR(128),
@@ -42,6 +44,8 @@ _queries = [
 
 # creat db connection pool
 def get_db_conn_pool():
+  if hasattr(app, 'db_conn_pool'):
+    return app.db_conn_pool
   return PooledDB(
     pymysql, 
     autocommit=True,
@@ -55,15 +59,16 @@ def get_db_conn_pool():
   )
 
 # create the tables
-def create_tables(connection):
-  with connection:
-    with connection.cursor() as cursor:
+def create_tables():
+  pool = get_db_conn_pool()
+  with pool.connection() as db:
+    with db.cursor() as cursor:
         for query in _queries:
             cursor.execute(query)
 
 # execute SQL query
 def exec_sql(query_string, func):       
-  pool = app.db_conn_pool
+  pool = get_db_conn_pool()
   with pool.connection() as db:
     with db.cursor() as cursor:
       cursor.execute(query_string)
@@ -137,7 +142,7 @@ def deleteDemo(id):
 
 # New Deployment
 def createDeployment(data):
-  query_string = f"""INSERT deployment (id, email, project_id, region, log_url) VALUES ('{data["id"]}', '{data["email"]}', '{data["project_id"]}', '{data["region"]}', '{data["log_url"]}')"""
+  query_string = f"""INSERT deployment (id, demo_id, email, project_id, region, log_url) VALUES ('{data["id"]}', '{data["demo_id"]}', '{data["email"]}', '{data["project_id"]}', '{data["region"]}', '{data["log_url"]}')"""
   app.logger.debug(query_string)
   return exec_sql(query_string, None)
 

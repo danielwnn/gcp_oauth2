@@ -7,15 +7,14 @@ from utils.helper import is_dev
 # create BQ client
 def get_bq_client():
   # check if cached
-  if ('bq_client' in app):
+  if hasattr(app, 'bq_client'):
     return app.bq_client
   
   project_id = app.config["PROJECT_ID"]
   if is_dev() and 'credentials' in session:
     credentials = Credentials(**session['credentials'])
     return bigquery.Client(project=project_id, credentials=credentials)
-  else:
-    return bigquery.Client(project=project_id)
+  return bigquery.Client(project=project_id)
   
 # make BigQuery call
 def call_bigQuery(query_string, func):

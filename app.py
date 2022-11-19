@@ -70,9 +70,10 @@ def create_app():
 
   # run after the app starts
   with app.app_context():
-    # seed the db tables
+    # cache the db connection pool
     app.db_conn_pool = sql.get_db_conn_pool()
-    sql.create_tables(app.db_conn_pool.connection())
+    # seed the db tables
+    sql.create_tables()
       
   # run before the first request
   @app.before_first_request

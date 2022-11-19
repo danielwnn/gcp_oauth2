@@ -183,9 +183,19 @@ function updateDemoList(demo) {
 
 // show the demo list content
 function showDemoList() {
+  function getButtons(demoId) {
+    let email = select('#txtUserEmail').innerHTML;
+    if (email.indexOf("@google.com") > -1) {
+      let buttons =
+        `<button class="btn btn-outline-danger btn-sm float-end" onclick="deleteDemo('${demoId}')">Delete</button>
+        <button class="btn btn-outline-success btn-sm float-end me-2" onclick="updateDemo('${demoId}')">Update</button>`;
+      return buttons;  
+    }
+    return "";
+  }
   if (demoList.length > 0) {
-    let innerHTML = "";
-    for (let i=0; i < demoList.length; i++) {
+    let innerHTML = "", size = demoList.length;
+    for (let i=0; i < size; i++) {
       innerHTML += 
         `<div class="col-lg-4">
           <div class="card">
@@ -195,8 +205,7 @@ function showDemoList() {
             </div>
             <div class="card-footer text-end">
               <button class="btn btn-outline-primary btn-sm float-start" onclick="deployDemo('${demoList[i].id}')"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Deploy</button>
-              <button class="btn btn-outline-danger btn-sm float-end" onclick="deleteDemo('${demoList[i].id}')">Delete</button>
-              <button class="btn btn-outline-success btn-sm float-end me-2" onclick="updateDemo('${demoList[i].id}')">Update</button>
+              ${getButtons(demoList[i].id)}
             </div>
           </div>
         </div>`;
@@ -214,13 +223,18 @@ function showDemoList() {
 
 // show the demo list page
 function showDemoListPage() {
+  function getOnboardButton() {
+    let email = select('#txtUserEmail').innerHTML;
+    if (email.indexOf("@google.com") > -1) {
+      return '<button id="btnOnboard" class="btn btn-outline-primary btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i>Onboard Demo</button>';
+    }
+    return "";
+  }
   select('#mainContent').innerHTML = 
-    `<div class="row">
-      <div id="demoListInfo" class="col-6 mb-3"></div>
-      <div class="col-6 text-end mb-3">
-        <button id="btnOnboard" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-box-arrow-in-right me-1"></i>Onboard Demo
-        </button>
+    `<div class="row mb-3">
+      <div id="demoListInfo" class="col-6"></div>
+      <div class="col-6 text-end">
+        ${getOnboardButton()}
       </div>
     </div>
     <div id="demoList" class="row"></div>`;
@@ -454,8 +468,8 @@ function showDemoDeployPage(title, demoId) {
     event.stopPropagation();
     if (form.checkValidity()) {
       var demo = formData2JSON(form);
-      deploy(demo);
       console.log(JSON.stringify(demo));
+      deploy(demo);
     } 
     form.classList.add('was-validated');
   }, false);
@@ -512,6 +526,7 @@ function makeAjaxRequest(endpoint, data, callback) {
       }
     };
   }
+  console.log(data);
   fetch(endpoint, data)
   .then(async function(response) {
     if (response.status == 401) {
@@ -566,7 +581,8 @@ function deploy(demo) {
 
   // deploy the demo
   makeAjaxRequest(endpoint, {
-    method: "POST"
+    method: "POST",
+    body: JSON.stringify({deploy_id: generateUUID()})
   }, function(result){
     let html = `<b>${new Date().toLocaleString()}</b>: Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">this link</a> for details.`;
     addNotification(html, false);
