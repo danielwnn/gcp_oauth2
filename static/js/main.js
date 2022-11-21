@@ -52,49 +52,26 @@ function getHashPath() {
   return location.hash.length > 0 ? location.hash.substring(1) : "";
 }
 
-
-// selector helper
-const select = (el, all = false) => {
-  el = el.trim()
-  if (all) {
-    return [...document.querySelectorAll(el)]
-  } else {
-    return document.querySelector(el)
-  }
-}
-
-// event listener
-const on = (type, el, listener, all = false) => {
-  if (all) {
-    select(el, all).forEach(e => e.addEventListener(type, listener))
-  } else {
-    select(el, all).addEventListener(type, listener)
-  }
-}
-
-// window onscroll event listener 
-const onscroll = (el, listener) => {
-  el.addEventListener('scroll', listener)
-}
-
 // Sidebar toggle
-if (select('.toggle-sidebar-btn')) {
-  on('click', '.toggle-sidebar-btn', function(e) {
-    select('body').classList.toggle('toggle-sidebar')
+let btnSidebarToggle = document.querySelector('.toggle-sidebar-btn');
+if (btnSidebarToggle) {
+  btnSidebarToggle.addEventListener('click', function(e) {
+    document.body.classList.toggle('toggle-sidebar')
   });
 }
 
 // Search bar toggle
-if (select('.search-bar-toggle')) {
-  on('click', '.search-bar-toggle', function(event) {
+let btnSearchbarToggle = document.querySelector('.search-bar-toggle');
+if (btnSearchbarToggle) {
+  btnSearchbarToggle.addEventListener('click', function(event) {
     event.preventDefault();
     event.stopPropagation();
-    select('.search-bar').classList.toggle('search-bar-show')
-  })
+    document.querySelector('.search-bar').classList.toggle('search-bar-show');
+  });
 }
 
 // Back to top button
-let backtotop = select('.back-to-top')
+let backtotop = document.querySelector('.back-to-top')
 if (backtotop) {
   backtotop.onclick = function(event) {
     event.preventDefault();
@@ -109,7 +86,7 @@ if (backtotop) {
     }
   }
   window.addEventListener('load', toggleBacktotop);
-  onscroll(document, toggleBacktotop);
+  document.addEventListener('scroll', toggleBacktotop);
 }
 
 // Initiate tooltips
@@ -147,15 +124,15 @@ function updateBreadcrumb(hashPath) {
       }
     }
   }
-  select('#breadcrumb').innerHTML = innerHTML;
+  document.querySelector('#breadcrumb').innerHTML = innerHTML;
 }
 
 // update the selected Nav Menu
 let curHashPath, prevHashPath;
 function updateSidebarSelected() {
-  let selected = select(`a[href="#${prevHashPath}"]`);
+  let selected = document.querySelector(`a[href="#${prevHashPath}"]`);
   if (selected) selected.classList.remove("active");
-  selected = select(`a[href="#${curHashPath}"]`);
+  selected = document.querySelector(`a[href="#${curHashPath}"]`);
   if (selected) selected.classList.add("active");
 }
 
@@ -184,7 +161,7 @@ function updateDemoList(demo) {
 // show the demo list content
 function showDemoList() {
   function getButtons(demoId) {
-    let email = select('#txtUserEmail').innerHTML;
+    let email = document.querySelector('#txtUserEmail').innerHTML;
     if (email.indexOf("@google.com") > -1) {
       let buttons =
         `<button class="btn btn-outline-danger btn-sm float-end" onclick="deleteDemo('${demoId}')">Delete</button>
@@ -210,27 +187,28 @@ function showDemoList() {
           </div>
         </div>`;
     }
-    select('#demoListInfo').innerHTML = "";
-    select('#demoList').innerHTML = innerHTML;
+    document.querySelector('#demoListInfo').innerHTML = "";
+    document.querySelector('#demoList').innerHTML = innerHTML;
   } else {
-    select('#demoListInfo').innerHTML = 
+    document.querySelector('#demoListInfo').innerHTML = 
     `<div class="alert alert-info alert-dismissible fade show" role="alert">
       <i class="bi bi-info-circle me-1"></i> No demos available to show.
     </div>`;
-    select('#demoList').innerHTML = "";
+    document.querySelector('#demoList').innerHTML = "";
   }
 }
 
 // show the demo list page
 function showDemoListPage() {
   function getOnboardButton() {
-    let email = select('#txtUserEmail').innerHTML;
+    let email = document.querySelector('#txtUserEmail').innerHTML;
     if (email.indexOf("@google.com") > -1) {
-      return '<button id="btnOnboard" class="btn btn-outline-primary btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i>Onboard Demo</button>';
+      let button = `<button id="btnOnboard" class="btn btn-outline-primary btn-sm" onclick="setHashPath('/demos/demo-onboard')"><i class="bi bi-box-arrow-in-right me-1"></i>Onboard Demo</button>`;
+      return button;
     }
     return "";
   }
-  select('#mainContent').innerHTML = 
+  document.querySelector('#mainContent').innerHTML = 
     `<div class="row mb-3">
       <div id="demoListInfo" class="col-6"></div>
       <div class="col-6 text-end">
@@ -239,10 +217,6 @@ function showDemoListPage() {
     </div>
     <div id="demoList" class="row"></div>`;
 
-  on('click', '#btnOnboard', function(e) {
-    setHashPath("/demos/demo-onboard");
-  });
-  
   // fetch the demo list if empty
   if (demoList.length === 0) {
     makeAjaxRequest(
@@ -288,7 +262,7 @@ function showDemoFormPage(title, demoId) {
 
 // show the demo form
 function showDemoForm(title, demo) {
-  select('#mainContent').innerHTML = 
+  document.querySelector('#mainContent').innerHTML = 
     `<div class="row">
       <div class="col-lg-3"></div>
       <div class="col-lg-6">
@@ -347,7 +321,7 @@ function showDemoForm(title, demo) {
     </div>`;
 
   // form validation and submission
-  var form = select('#frmDemoInfo');
+  var form = document.querySelector('#frmDemoInfo');
   form.addEventListener('submit', function(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -392,7 +366,7 @@ function showDemoDeployPage(title, demoId) {
   let name = "";
   let demo = getDemoById(demoId);
   if (demo) name = demo["name"];
-  select('#mainContent').innerHTML = 
+  document.querySelector('#mainContent').innerHTML = 
     `<div class="row">
       <div class="col-lg-3"></div>
       <div class="col-lg-6">
@@ -457,12 +431,12 @@ function showDemoDeployPage(title, demoId) {
     makeAjaxRequest(endpoint, {
       method: "GET"
     }, function(result){
-      select('#inputName').innerHTML = result["name"];
+      document.querySelector('#inputName').innerHTML = result["name"];
     });
   }
 
   // form validation and submission
-  var form = select('#frmDemoDeploy');
+  var form = document.querySelector('#frmDemoDeploy');
   form.addEventListener('submit', function(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -499,10 +473,10 @@ function updateMainContent(hashPath) {
   else {
     let label = BREADCRUMB_LABELS[path];
     if (label) {
-      select('#mainContent').innerHTML = `<h2>${BREADCRUMB_LABELS[path]}</h2>`;
+      document.querySelector('#mainContent').innerHTML = `<h2>${BREADCRUMB_LABELS[path]}</h2>`;
     }
     else {
-      select('#mainContent').innerHTML = 
+      document.querySelector('#mainContent').innerHTML = 
         `<div class="col-6 alert alert-danger alert-dismissible fade show" role="alert">
           <i class="bi bi-exclamation-octagon me-1"></i> 404 - Resource not found.
         </div>`;
@@ -597,13 +571,13 @@ function updateProjectList() {
       method: "GET"
     }, function(result){
       projectList = result.projects;
-      let selProj = select('#inputProject');
+      let selProj = document.querySelector('#inputProject');
       projectList.forEach(el => {
         selProj.add(new Option(el.name, el.projectId));
       });
     });
   } else {
-    let selProj = select('#inputProject');
+    let selProj = document.querySelector('#inputProject');
     projectList.forEach(el => {
       selProj.add(new Option(el.name, el.projectId));
     });
@@ -616,7 +590,7 @@ function updateRegionList(project) {
   makeAjaxRequest(endpoint, {
     method: "GET"
   }, function(result){
-    let selProj = select('#inputRegion');
+    let selProj = document.querySelector('#inputRegion');
     result.regions.forEach(name => {
       selProj.add(new Option(name, name));
     });
@@ -687,7 +661,7 @@ let notifCount = 0;
 
 // add a new notification message
 function addNotification(message, isError) {
-  let el = select('#notifications');
+  let el = document.querySelector('#notifications');
   let html = 
     `<li>
       <hr class="dropdown-divider">
@@ -698,21 +672,21 @@ function addNotification(message, isError) {
     </li>`;
   el.insertAdjacentHTML("afterbegin", html);
   notifCount++;
-  select('#notifCount').innerHTML = notifCount;
-  select('#notifSummary').innerHTML = `You have ${notifCount} notifications.`;
-  select('#notifClearAll').disabled = false;
+  document.querySelector('#notifCount').innerHTML = notifCount;
+  document.querySelector('#notifSummary').innerHTML = `You have ${notifCount} notifications.`;
+  document.querySelector('#notifClearAll').disabled = false;
 }
 
 // clear all notification messages
 function clearAllNotifications() {
-  let el = select('#notifications');
+  let el = document.querySelector('#notifications');
   let children = el.children;
   for (let i=children.length-1; i >= 0; i--){
     el.removeChild(children[i])
   }
-  select('#notifClearAll').disabled = true;
-  select('#notifSummary').innerHTML = "You have no notifications.";
-  select('#notifCount').innerHTML = "";
+  document.querySelector('#notifClearAll').disabled = true;
+  document.querySelector('#notifSummary').innerHTML = "You have no notifications.";
+  document.querySelector('#notifCount').innerHTML = "";
   notifCount = 0;
   return false;
 }

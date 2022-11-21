@@ -9,7 +9,7 @@ from datastore import sql
 # flask.jsonify(session['id_info'])
 
 # API endpoints
-_PROJECTS_ENDPOINT = "https://cloudresourcemanager.googleapis.com/v1/projects?filter=name:*danielw*"
+_PROJECTS_ENDPOINT = "https://cloudresourcemanager.googleapis.com/v1/projects" #?filter=name:*danielw*
 _REGIONS_ENDPOINT = "https://compute.googleapis.com/compute/v1/projects/{project}/regions"
 _BUILD_ENDPOINT = "https://cloudbuild.googleapis.com/v1/projects/{project}/builds"
 
