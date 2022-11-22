@@ -55,7 +55,8 @@ def deploy(project, region, id):
       "project_id": project,
       "region": region,
       "email": get_user_email(),
-      "log_url": result["metadata"]["build"]["logUrl"]
+      "log_url": result["metadata"]["build"]["logUrl"],
+      "status": "DEPLOYED"
     }
     sql.createDeployment(data)
   
@@ -86,3 +87,8 @@ def updateDemo(id):
 def deleteDemo(id):
   sql.deleteDemo(id)
   return HTTP_200
+
+# Get the deployments
+def getDeployments():
+  email = get_user_email()
+  return sql.getDeployments(email), 200

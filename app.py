@@ -39,6 +39,7 @@ def _init_endpoints(app):
   app.add_url_rule("/deploy/projects", "getProjects", methods=["GET"], view_func=rest.getProjects)
   app.add_url_rule("/deploy/projects/<project>/regions", "getRegions", methods=["GET"], view_func=rest.getRegions)
   app.add_url_rule("/deploy/projects/<project>/regions/<region>/demos/<id>", "deploy", methods=["POST"], view_func=rest.deploy)
+  app.add_url_rule("/deployments", "getDeployments", methods=["GET"], view_func=rest.getDeployments)
   
   # demo endpoints
   app.add_url_rule("/demos", "getDemoList", methods=["GET"], view_func=rest.getDemoList)

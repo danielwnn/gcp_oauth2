@@ -1,6 +1,4 @@
 import os
-import json
-import flask
 import requests
 from functools import wraps
 from flask import current_app as app, request, session, redirect, url_for 

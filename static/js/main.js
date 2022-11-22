@@ -8,6 +8,11 @@ let DEMO_GET    = "/demos/<id>"
 let DEMO_CREATE = "/demos"
 let DEMO_UPDATE = "/demos/<id>"
 let DEMO_DELETE = "/demos/<id>"
+let DEPLOYMENT_LIST = "/deployments"
+
+let demoList = [];
+let myDemoList = [];
+let projectList = [];
 
 // Public Domain / MIT
 function generateUUID() { 
@@ -135,9 +140,6 @@ function updateSidebarSelected() {
   selected = document.querySelector(`a[href="#${curHashPath}"]`);
   if (selected) selected.classList.add("active");
 }
-
-// the demo list
-let demoList = [];
 
 // Get the demo by ID
 function getDemoById(id) {
@@ -454,12 +456,110 @@ function showDemoDeployPage(title, demoId) {
   }, false);
 }
 
+// update MyDemoList
+function updateMyDemoList(demo, deploy_id, logUrl, tmstamp){
+  let found = false;
+  let deployment = {
+    id: deploy_id,
+    project_id: demo["project_id"],
+    region: demo["region"],
+    log_url: logUrl,
+    status: "DEPLOYED",
+    deployed_at: tmstamp
+  };
+  for (let i=0; i < myDemoList.length; i++) {
+    if (myDemoList[i]["demo_id"] == demo["demo_id"]) {
+      found = true;
+      myDemoList[i]["deployments"].push(deployment);
+    }
+  } 
+  if (!found) {
+    let demo2 = getDemoById(demo["demo_id"]); 
+    myDemoList.push({
+      demo_id: demo["demo_id"],
+      name: demo2["name"],
+      description: demo2["description"],
+      undeploy_url: demo2["undeploy_url"],
+      deployments: [deployment]
+    })
+  }
+}
+
+// show the My Demo list content
+function showMyDemoList() {
+  function getButtons(myDemo) {
+    if (myDemo["undeploy_url"] && myDemo["undeploy_url"].trim() !== "") {
+      let buttons = `<button class="btn btn-outline-danger btn-sm float-end" onclick="undeployDemo('${myDemo["demo_id"]}')">Undeploy</button>`;
+      return buttons;  
+    }
+    return "";
+  }
+  function getDeployments(myDemo) {
+    let html = "", size = myDemo.deployments.length;
+    for (let i=0; i < size; i++) {
+      let deployment = myDemo.deployments[i];
+      html += `<span>${deployment["status"]=="DEPLOYED" ? "Deployed in" : "Undeployed from"} Project: ${deployment["project_id"]} and Region: ${deployment["region"]} at ${deployment["deployed_at"]}. <a target="_blank" href="${deployment["log_url"]}">Log and status</a></span>`;
+      if (i !== size - 1) html += "<hr/>";
+    }
+    return html;
+  }
+  if (myDemoList.length > 0) {
+    let innerHTML = "", size = myDemoList.length;
+    for (let i=0; i < size; i++) {
+      let myDemo = myDemoList[i];
+      innerHTML += 
+        `<div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              ${myDemo.name}
+              ${getButtons(myDemo)}
+            </div>
+            <div class="card-body">
+              <span>${myDemo.description}</span>
+            </div>
+            <div class="card-footer text-start">
+              ${getDeployments(myDemo)}
+            </div>
+          </div>
+        </div>`;
+    }
+    document.querySelector('#myDemoList').innerHTML = innerHTML;
+  } else {
+    document.querySelector('#myDemoList').innerHTML = 
+    `<div id="demoListInfo" class="col-6"><div class="alert alert-info alert-dismissible fade show" role="alert">
+      <i class="bi bi-info-circle me-1"></i> No deployed demos available to show.
+    </div></div>`;
+  }
+}
+
+// show My Demos page
+function showMyDemosPage() {
+  document.querySelector('#mainContent').innerHTML = `<div id="myDemoList" class="row"></div>`;
+
+  // fetch the deployment list if empty
+  if (myDemoList.length === 0) {
+    makeAjaxRequest(
+      DEPLOYMENT_LIST, 
+      null, 
+      function(result) {
+        myDemoList = result["demos"];
+        showMyDemoList();
+      }
+    );
+  } else {
+    showMyDemoList();
+  }
+}
+
 // show main content
 function updateMainContent(hashPath) {
   let paths = hashPath.split("/");
   let path = paths[paths.length-1];
   if (hashPath.indexOf("demo-list") > -1) {
     showDemoListPage();
+  } 
+  else if (hashPath.indexOf("my-demos") > -1) {
+    showMyDemosPage();
   } 
   else if (hashPath.indexOf("demo-onboard") > -1) {
     showDemoFormPage("Demo Onboard Form");
@@ -554,17 +654,21 @@ function deploy(demo) {
     .replace("<id>", demo["demo_id"]);
 
   // deploy the demo
+  let deploy_id = generateUUID();
   makeAjaxRequest(endpoint, {
     method: "POST",
-    body: JSON.stringify({deploy_id: generateUUID()})
+    body: JSON.stringify({deploy_id: deploy_id})
   }, function(result){
-    let html = `<b>${new Date().toLocaleString()}</b>: Your deployment is in progress. Please click <a target="_blank" href="${result.metadata.build.logUrl}">this link</a> for details.`;
-    addNotification(html, false);
+    let tmstamp = (new Date()).toLocaleString('en-US', {timeZone: 'UTC'});
+    let logUrl = result.metadata.build.logUrl;
+    let message = `<b>${tmstamp}</b>: Your deployment is in progress. Please click <a target="_blank" href="${logUrl}">this link</a> for details.`;
+    addNotification(message, false);
+    updateMyDemoList(demo, deploy_id, logUrl, tmstamp);
+    setHashPath("/demos/my-demos");
   });
 }
 
 // update the project list
-let projectList = [];
 function updateProjectList() {
   if (projectList.length === 0) {
     makeAjaxRequest(PROJECTS_ENDPOINT, {
