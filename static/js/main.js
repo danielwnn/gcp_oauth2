@@ -443,9 +443,9 @@ function showDemoDeployPage(title, demoId) {
     event.preventDefault();
     event.stopPropagation();
     if (form.checkValidity()) {
-      var demo = formData2JSON(form);
-      console.log(JSON.stringify(demo));
-      deploy(demo);
+      var deployment = formData2JSON(form);
+      console.log(JSON.stringify(deployment));
+      deploy(deployment);
     } 
     form.classList.add('was-validated');
   }, false);
@@ -457,16 +457,8 @@ function showDemoDeployPage(title, demoId) {
 }
 
 // update MyDemoList
-function updateMyDemoList(demo, deploy_id, logUrl, tmstamp){
+function updateMyDemoList(demoId, deployment){
   let found = false;
-  let deployment = {
-    id: deploy_id,
-    project_id: demo["project_id"],
-    region: demo["region"],
-    log_url: logUrl,
-    status: "DEPLOYED",
-    deployed_at: tmstamp
-  };
   for (let i=0; i < myDemoList.length; i++) {
     if (myDemoList[i]["demo_id"] == demo["demo_id"]) {
       found = true;
@@ -474,14 +466,16 @@ function updateMyDemoList(demo, deploy_id, logUrl, tmstamp){
     }
   } 
   if (!found) {
-    let demo2 = getDemoById(demo["demo_id"]); 
-    myDemoList.push({
-      demo_id: demo["demo_id"],
-      name: demo2["name"],
-      description: demo2["description"],
-      undeploy_url: demo2["undeploy_url"],
-      deployments: [deployment]
-    })
+    let demo = getDemoById(demoId);
+    if (demo) {
+      myDemoList.push({
+        demo_id: demo["id"],
+        name: demo["name"],
+        description: demo["description"],
+        undeploy_url: demo["undeploy_url"],
+        deployments: [deployment]
+      });
+    }
   }
 }
 
@@ -647,11 +641,11 @@ function deployDemo(id) {
 }
 
 // deploy the demo - API call
-function deploy(demo) {
+function deploy(deployment) {
   let endpoint = DEPLOY_ENDPOINT
-    .replace("<project>", demo["project_id"])
-    .replace("<region>", demo["region"])
-    .replace("<id>", demo["demo_id"]);
+    .replace("<project>", deployment["project_id"])
+    .replace("<region>", deployment["region"])
+    .replace("<id>", deployment["demo_id"]);
 
   // deploy the demo
   let deploy_id = generateUUID();
@@ -663,7 +657,14 @@ function deploy(demo) {
     let logUrl = result.metadata.build.logUrl;
     let message = `<b>${tmstamp}</b>: Your deployment is in progress. Please click <a target="_blank" href="${logUrl}">this link</a> for details.`;
     addNotification(message, false);
-    updateMyDemoList(demo, deploy_id, logUrl, tmstamp);
+    updateMyDemoList(deployment["demo_id"], {
+      id: deploy_id,
+      project_id: deployment["project_id"],
+      region: deployment["region"],
+      log_url: logUrl,
+      status: "DEPLOYED",
+      deployed_at: tmstamp
+    });
     setHashPath("/demos/my-demos");
   });
 }
