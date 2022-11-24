@@ -20,6 +20,28 @@ def is_dev():
 def not_static(path):
   return ("/img/" not in path) and ("/css/" not in path) and ("/js/" not in path) and ("/vendor/" not in path)
 
+# get remote / client IP
+def get_client_ip(req):
+  if req.environ.get('HTTP_X_FORWARDED_FOR') is None:
+    return request.environ['REMOTE_ADDR']
+  else:
+    return request.environ['HTTP_X_FORWARDED_FOR']
+  
+# get local IP addresses
+def get_local_ip():
+  for ifaceName in interfaces():
+    address = [i['addr'] for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'None'}])]
+    if (address[0] != 'None' and address[0] != '127.0.0.1'):
+      return address[0]
+  return '127.0.0.1'
+
+# get the user email
+def get_user_email():
+  if 'id_info' in session:
+    return session['id_info']['email']
+  else:
+    return ""
+
 # decorator role_required
 def role_required(role):
   def decorator(func):
@@ -42,21 +64,6 @@ def authz_required(func):
             return redirect(url_for("authorize", next=request.url))
         return func(*args, **kwargs)
     return secure_function
-
-# get local IP addresses
-def get_local_ip():
-  for ifaceName in interfaces():
-    address = [i['addr'] for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'None'}])]
-    if (address[0] != 'None' and address[0] != '127.0.0.1'):
-      return address[0]
-  return '127.0.0.1'
-
-# get the user email
-def get_user_email():
-  if 'id_info' in session:
-    return session['id_info']['email']
-  else:
-    return ""
 
 # helper to make http request
 def makeHttpRequest(endpoint, method, headers, payload, func):  
@@ -94,3 +101,19 @@ def makeHttpRequest(endpoint, method, headers, payload, func):
 
   return HTTP_401
   
+  class ReverseProxied(object):
+    """
+    Because we are reverse proxied from an aws load balancer
+    use environ/config to signal https
+    since flask ignores preferred_url_scheme in url_for calls
+    """
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        # if one of x_forwarded or preferred_url is https, prefer it.
+        forwarded_scheme = environ.get("HTTP_X_FORWARDED_PROTO", None)
+        preferred_scheme = app.config.get("PREFERRED_URL_SCHEME", None)
+        if "https" in [forwarded_scheme, preferred_scheme]:
+            environ["wsgi.url_scheme"] = "https"
+        return self.app(environ, start_response)

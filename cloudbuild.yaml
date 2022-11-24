@@ -23,18 +23,18 @@ steps:
     - '--image=gcr.io/$PROJECT_ID/gcp_demo_app:latest'
     - '--port=8080'
     - '--max-instances=5'
-    - '--region=us-west2'
+    - '--region=${_REGION}'
     - '--platform=managed'
     - '--set-secrets=/secret_manager/settings.json=app_settings:latest'
     - '--set-env-vars=APP_ENV=PROD,APP_PORT=8080,APP_CORS=*'
+    - '--vpc-connector=projects/$PROJECT_ID/locations/${_REGION}/connectors/vpcconnector2'
     - '--allow-unauthenticated'
 
 images:
 - 'gcr.io/$PROJECT_ID/gcp_demo_app:latest'
 
-# substitutions:
-#   _SUB_VALUE_1: unused
-#   _SUB_VALUE_2: v1.0 # default value
+substitutions:
+  _REGION: us-west3
   
 options:
   dynamic_substitutions: true

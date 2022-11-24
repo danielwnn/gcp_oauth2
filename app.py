@@ -9,13 +9,13 @@ import logger
 from oauth import gcp
 from api import rest
 from datastore import sql
-from utils.helper import is_dev, not_static, get_local_ip, authz_required
+from utils.helper import is_dev, not_static, get_local_ip, authz_required, ReverseProxied
 
 # get the host and port
 APP_ENV  = os.getenv("APP_ENV", "DEV")
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = os.getenv("APP_PORT", 8080)
-APP_CORS = os.getenv("APP_CORS", f"http://localhost:{APP_PORT}")
+APP_CORS = os.getenv("APP_CORS", "*")
 APP_CONFIG_FILE = os.getenv("APP_CONFIG_FILE", "/secret_manager/settings.json")
 
 if is_dev():
@@ -63,6 +63,11 @@ def create_app():
   app = Flask(__name__, static_url_path="/", static_folder="static")
   app.config.from_file(APP_CONFIG_FILE, load=json.load)
   app.secret_key = app.config["SECRET_KEY"]
+  app.wsgi_app = ReverseProxied(app.wsgi_app)
+  
+  # switch to HTTPS for PROD
+  # if not is_dev():
+  #   app.config["PREFERRED_URL_SCHEME"] = "https"
 
   # setup logging
   logger.init(app, config_file=f"config/logging-{APP_ENV}.yaml")
@@ -91,14 +96,14 @@ def create_app():
       app.logger.info(
         "%s %s %s %s %s",
         request.environ.get("SERVER_PROTOCOL"),
-        request.remote_addr,
+        request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
         request.method,
         request.full_path,
         request.get_data(as_text=True)
       )
     # CORS validate
     cors = f"{request.scheme}://{request.host}"
-    if (cors != "*") and (cors not in APP_CORS):
+    if not ("*" == APP_CORS or cors in APP_CORS):
       response_body = {
         "error": {
           "code": 403, 
@@ -117,7 +122,7 @@ def create_app():
         app.logger.info(
             "%s %s %s %s %s",
             request.environ.get("SERVER_PROTOCOL"),
-            request.remote_addr,
+            request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
             request.method,
             request.full_path,
             response.status
