@@ -16,12 +16,12 @@ APP_ENV  = os.getenv("APP_ENV", "DEV")
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = os.getenv("APP_PORT", 8080)
 APP_CORS = os.getenv("APP_CORS", f"http://localhost:{APP_PORT}")
-APP_LOG_DIR = os.getenv("APP_LOG_DIR", "/dev/log")
 APP_CONFIG_FILE = os.getenv("APP_CONFIG_FILE", "/secret_manager/settings.json")
 
 if is_dev():
   # log directory for DEV
-  APP_LOG_DIR = "logs" 
+  if not os.path.exists("logs"):
+    os.mkdir("logs")
   # For PROD, the settings.json will be injected into Cloud Run as a file in the mounted volume
   APP_CONFIG_FILE = "config/settings-local.json"
 
@@ -65,8 +65,6 @@ def create_app():
   app.secret_key = app.config["SECRET_KEY"]
 
   # setup logging
-  if not os.path.exists(APP_LOG_DIR):
-    os.mkdir(APP_LOG_DIR)
   logger.init(app, config_file=f"config/logging-{APP_ENV}.yaml")
   
   # init endpoints

@@ -11,5 +11,5 @@ WORKDIR /app
 COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE $APP_PORT
-RUN mkdir -p /dev/log
+RUN mkdir -p /var/log
 CMD ["python", "app.py"]

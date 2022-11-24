@@ -15,7 +15,7 @@ handlers:
     class: logging.handlers.TimedRotatingFileHandler
     level: DEBUG
     formatter: detail
-    filename: /dev/log/application.log
+    filename: /var/log/application.log
     when: midnight
     encoding: UTF-8
 loggers:
