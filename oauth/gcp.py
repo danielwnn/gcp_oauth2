@@ -53,11 +53,11 @@ def authorize():
   if next_url:
     session["next_url"] = next_url
 
-  CLIENT_SECRETS_FILE = app.config["CLIENT_SECRETS_FILE"]
+  CLIENT_SECRET = app.config["CLIENT_SECRET"]
   SCOPES = app.config["SCOPES"]
   
   # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
-  flow = Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES)
+  flow = Flow.from_client_config(CLIENT_SECRET, scopes=SCOPES)
 
   # The URI created here must exactly match one of the authorized redirect URIs
   # for the OAuth 2.0 client, which you configured in the API Console. If this
@@ -82,14 +82,14 @@ def authorize():
 
 # oauth2 callback
 def oauth2_callback():
-  CLIENT_SECRETS_FILE = app.config["CLIENT_SECRETS_FILE"]
+  CLIENT_SECRET = app.config["CLIENT_SECRET"]
   SCOPES = app.config["SCOPES"]
   
   # Specify the state when creating the flow in the callback so that it can
   # verified in the authorization server response.
   state = session['state']
 
-  flow = Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
+  flow = Flow.from_client_config(CLIENT_SECRET, scopes=SCOPES, state=state)
   flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
 
   # Use the authorization server's response to fetch the OAuth 2.0 tokens

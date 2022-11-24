@@ -52,7 +52,7 @@ hr {
   right: 15px;
   bottom: 15px;
   z-index: 99999;
-  background: #4154f1;
+  background: rgb(13, 110, 253); /* #4154f1; */
   width: 40px;
   height: 40px;
   border-radius: 4px;
@@ -66,7 +66,7 @@ hr {
 }
 
 .back-to-top:hover {
-  background: #6776f4;
+  background: #031bf3; /* #6776f4 */
   color: #fff;
 }
 

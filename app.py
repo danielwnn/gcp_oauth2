@@ -16,7 +16,14 @@ APP_ENV  = os.getenv("APP_ENV", "DEV")
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = os.getenv("APP_PORT", 8080)
 APP_CORS = os.getenv("APP_CORS", f"http://localhost:{APP_PORT}")
-APP_LOG_DIR = os.getenv("APP_LOG_DIR", "logs")
+APP_LOG_DIR = os.getenv("APP_LOG_DIR", "/dev/log")
+APP_CONFIG_FILE = os.getenv("APP_CONFIG_FILE", "/secret_manager/settings.json")
+
+if is_dev():
+  # log directory for DEV
+  APP_LOG_DIR = "logs" 
+  # For PROD, the settings.json will be injected into Cloud Run as a file in the mounted volume
+  APP_CONFIG_FILE = "config/settings-local.json"
 
 # init API endpoints
 def _init_endpoints(app):
@@ -51,15 +58,11 @@ def _init_endpoints(app):
 ###########################################################
 # the app factory function
 ######
-def create_app():
-  # config file
-  config_file = "config/settings.json"
-  if is_dev():
-    config_file = "config/settings-local.json"
-  
+def create_app():  
   # Create Flask app
   app = Flask(__name__, static_url_path="/", static_folder="static")
-  app.config.from_file(config_file, load=json.load)
+  app.config.from_file(APP_CONFIG_FILE, load=json.load)
+  app.secret_key = app.config["SECRET_KEY"]
 
   # setup logging
   if not os.path.exists(APP_LOG_DIR):

@@ -467,7 +467,7 @@ function updateMyDemoList(demoId, deployment){
   } 
   if (!found) {
     let demo = getDemoById(demoId);
-    if (demo) {
+    if (demo) { // if demo is NULL, the page just got reloaded
       myDemoList.push({
         demo_id: demo["id"],
         name: demo["name"],

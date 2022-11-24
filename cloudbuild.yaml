@@ -3,55 +3,32 @@ steps:
   - name: 'gcr.io/cloud-builders/git'
     args: 
     - clone
-    - https://github.com/danielwnn/FaceRecognition
-    - demo
+    - https://github.com/danielwnn/gcp_oauth2
+    - gcp_demo_app
 
   # build the frontend image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:latest', './demo/frontend']
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/gcp_demo_app:latest', './gcp_demo_app']
 
   # push the frontend image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/frontend:latest']
+    args: ['push', 'gcr.io/$PROJECT_ID/gcp_demo_app:latest']
 
-  # build the backend image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/backend:latest', './demo/backend']
-
-  # push the frontend image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/backend:latest']
-
-  # run terraform
-  - name: 'hashicorp/terraform'
-    entrypoint: 'sh'
-    args: 
-    - '-c'
-    - |
-        cd ./demo/terraform
-        terraform init
-        terraform apply -auto-approve
-        terraform destroy -auto-approve
-    env:
-    - 'TF_VAR_BUILD=$BUILD_ID'
-    - 'TF_VAR_PROJECT_ID=$PROJECT_ID'
-
-#  - name: 'gcr.io/cloud-builders/gcloud'
-#    args:
-#    - 'run'
-#    - 'deploy'
-#    - 'cloudrunservice'
-#    - '--image'
-#    - 'us-docker.pkg.dev/cloudrun/container/hello'
-#    - '--region'
-#    - 'us-central1'
-#    - '--platform'
-#    - 'managed'
-#    - '--allow-unauthenticated'
+  # deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+    - 'run deploy gcp_demo_app'
+    - '--image gcr.io/$PROJECT_ID/gcp_demo_app:latest'
+    - '--port 8080'
+    - '--max-instances 5'
+    - '--region us-west2'
+    - '--platform managed'
+    - '--set-secrets=/secret_manager/settings.json=app_settings:latest'
+    - '--set-env-vars APP_ENV=PROD,APP_PORT=8080,APP_CORS=*'
+    - '--allow-unauthenticated'
 
 images:
-- 'gcr.io/$PROJECT_ID/frontend:latest'
-- 'gcr.io/$PROJECT_ID/backend:latest'
+- 'gcr.io/$PROJECT_ID/gcp_demo_app:latest'
 
 # substitutions:
 #   _SUB_VALUE_1: unused
