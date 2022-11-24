@@ -3,7 +3,7 @@ import logging, logging.config, yaml
 from werkzeug.serving import WSGIRequestHandler, _log
 
 # init logging
-def init(app):
+def init(app, config_file):
     APP_ENV = os.getenv("APP_ENV", "DEV")
     app.config["APP_ENV"] = APP_ENV
     
@@ -11,7 +11,7 @@ def init(app):
     logging.getLogger("werkzeug").disabled = True
     
     # set up logging through config file
-    config = yaml.load(open("config/logging.yaml"), Loader=yaml.FullLoader)
+    config = yaml.load(open(config_file), Loader=yaml.FullLoader)
     logging.config.dictConfig(config)
 
     # disable logging propagation

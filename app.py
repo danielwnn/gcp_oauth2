@@ -67,7 +67,7 @@ def create_app():
   # setup logging
   if not os.path.exists(APP_LOG_DIR):
     os.mkdir(APP_LOG_DIR)
-  logger.init(app)
+  logger.init(app, config_file=f"config/logging-{APP_ENV}.yaml")
   
   # init endpoints
   _init_endpoints(app)
