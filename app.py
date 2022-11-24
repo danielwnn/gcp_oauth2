@@ -9,7 +9,8 @@ import logger
 from oauth import gcp
 from api import rest
 from datastore import sql
-from utils.helper import is_dev, not_static, get_local_ip, authz_required, ReverseProxied
+from utils.proxy import ReverseProxied
+from utils.helper import is_dev, not_static, get_local_ip, authz_required
 
 # get the host and port
 APP_ENV  = os.getenv("APP_ENV", "DEV")
@@ -63,11 +64,11 @@ def create_app():
   app = Flask(__name__, static_url_path="/", static_folder="static")
   app.config.from_file(APP_CONFIG_FILE, load=json.load)
   app.secret_key = app.config["SECRET_KEY"]
-  app.wsgi_app = ReverseProxied(app.wsgi_app)
   
-  # switch to HTTPS for PROD
-  # if not is_dev():
-  #   app.config["PREFERRED_URL_SCHEME"] = "https"
+  # Support for reverse proxy HTTPS
+  if not is_dev():
+    app.config["PREFERRED_URL_SCHEME"] = "https"
+  app.wsgi_app = ReverseProxied(app.wsgi_app, app.config["PREFERRED_URL_SCHEME"])
 
   # setup logging
   logger.init(app, config_file=f"config/logging-{APP_ENV}.yaml")
