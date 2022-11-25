@@ -460,7 +460,7 @@ function showDemoDeployPage(title, demoId) {
 function updateMyDemoList(demoId, deployment){
   let found = false;
   for (let i=0; i < myDemoList.length; i++) {
-    if (myDemoList[i]["demo_id"] == demo["demo_id"]) {
+    if (myDemoList[i]["demo_id"] == demoId) {
       found = true;
       myDemoList[i]["deployments"].push(deployment);
     }
