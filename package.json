@@ -1,0 +1,18 @@
+{
+  "name": "minify",
+  "version": "1.0.0",
+  "private": true,
+  "description": "minify JavaScript and CSS",
+  "scripts": {
+    "uglifyjs": "uglifyjs static/js/main.js -o static/js/main.min.js -c -m --source-map",
+    "minifyjs": "minify static/js/main.js > static/js/main.min.js",
+    "minifycss": "minify static/css/main.css > static/css/main.min.css"
+  },
+  "keywords": [],
+  "author": "Daniel Wang",
+  "license": "MIT",
+  "dependencies": {
+    "minify": "^9.1.0",
+    "uglify-js": "^3.17.4"
+  }
+}

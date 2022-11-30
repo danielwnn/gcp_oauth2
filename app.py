@@ -31,11 +31,15 @@ def _init_endpoints(app):
   # index endpoint
   # app.add_url_rule("/", "index", view_func=lambda: app.send_static_file("home.html"))
   @app.route('/')
+  @app.route('/index.html')
   @app.route('/home.html')
   @authz_required
   def index():
     id_info = session['id_info']
-    return render_template("home_tpl.html", 
+    tpl = "home.tpl.html"
+    if is_dev():
+      tpl = "index.tpl.html"
+    return render_template(tpl,
       name=id_info["name"], email=id_info["email"], picture=id_info["picture"])
   
   # oauth2 endpoins

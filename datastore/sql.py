@@ -67,11 +67,11 @@ def create_tables():
             cursor.execute(query)
 
 # execute SQL query
-def exec_sql(query_string, func):       
+def _exec_sql(query_string, data, func):       
   pool = get_db_conn_pool()
   with pool.connection() as db:
     with db.cursor() as cursor:
-      cursor.execute(query_string)
+      cursor.execute(query_string, data)
       result = cursor.fetchall()
       if (func):
         return func(result)
@@ -94,10 +94,9 @@ def getDemoList():
       })
     return demolist
     
-  query_string = "SELECT id, name, contact, description, repository_url, deploy_url, undeploy_url, tags FROM inventory WHERE status = 'ACTIVE'"
-  app.logger.debug(query_string)
-  
-  return exec_sql(query_string, func)
+  query = "SELECT id, name, contact, description, repository_url, deploy_url, undeploy_url, tags FROM inventory WHERE status = 'ACTIVE'"
+  app.logger.debug(query)
+  return _exec_sql(query, None, func)
 
 # Get the demo
 def getDemo(id):
@@ -117,34 +116,43 @@ def getDemo(id):
       }
     return demo
   
-  query_string = f"SELECT id, name, contact, description, repository_url, deploy_url, undeploy_url, tags FROM inventory WHERE id = '{id}'"
-  app.logger.debug(query_string)
-  
-  return exec_sql(query_string, func)
+  # query = f"""SELECT id, name, contact, description, repository_url, deploy_url, undeploy_url, tags FROM inventory WHERE id = '{id}'"""
+  query = """SELECT id, name, contact, description, repository_url, deploy_url, undeploy_url, tags FROM inventory WHERE id = %s"""
+  data = (id)
+  app.logger.debug(query, data)
+  return _exec_sql(query, data, func)
 
 # Create the demo
-def createDemo(data):
-  query_string = f"""INSERT inventory (id, name, contact, description, repository_url, deploy_url, undeploy_url) VALUES ('{data["id"]}', '{data["name"]}', '{data["contact"]}', '{data["description"]}', '{data["repository_url"]}', '{data["deploy_url"]}', '{data["undeploy_url"]}')"""
-  app.logger.debug(query_string)
-  return exec_sql(query_string, None)
+def createDemo(demo):
+  # query = f"""INSERT inventory (id, name, contact, description, repository_url, deploy_url, undeploy_url) VALUES ('{demo["id"]}', '{demo["name"]}', '{demo["contact"]}', '{demo["description"]}', '{demo["repository_url"]}', '{demo["deploy_url"]}', '{demo["undeploy_url"]}')"""
+  query = """INSERT inventory (id, name, contact, description, repository_url, deploy_url, undeploy_url) VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+  data = (demo["id"], demo["name"], demo["contact"], demo["description"], demo["repository_url"], demo["deploy_url"], demo["undeploy_url"])
+  app.logger.debug(query, *data)
+  return _exec_sql(query, data, None)
 
 # Update the demo
-def updateDemo(id, data):
-  query_string = f"""UPDATE inventory SET name='{data["name"]}', contact='{data["contact"]}', description='{data["description"]}', repository_url='{data["repository_url"]}', deploy_url='{data["deploy_url"]}', undeploy_url='{data["undeploy_url"]}' WHERE id='{id}'"""
-  app.logger.debug(query_string)
-  return exec_sql(query_string, None)
+def updateDemo(id, demo):
+  # query = f"""UPDATE inventory SET name='{demo["name"]}', contact='{demo["contact"]}', description='{demo["description"]}', repository_url='{demo["repository_url"]}', deploy_url='{demo["deploy_url"]}', undeploy_url='{demo["undeploy_url"]}' WHERE id='{id}'"""
+  query = """UPDATE inventory SET name=%s, contact=%s, description=%s, repository_url=%s, deploy_url=%s, undeploy_url=%s WHERE id=%s"""
+  data = (demo["name"], demo["contact"], demo["description"], demo["repository_url"], demo["deploy_url"], demo["undeploy_url"], id)
+  app.logger.debug(query, *data)
+  return _exec_sql(query, data, None)
 
 # Delete the demo
 def deleteDemo(id):
-  query_string = f"UPDATE inventory SET status='DELETED' WHERE id='{id}'"
-  app.logger.debug(query_string)
-  return exec_sql(query_string, None)
+  # query = f"UPDATE inventory SET status='DELETED' WHERE id='{id}'"
+  query = """UPDATE inventory SET status='DELETED' WHERE id=%s"""
+  data = (id)
+  app.logger.debug(query, data)
+  return _exec_sql(query, data, None)
 
 # New Deployment
-def createDeployment(data):
-  query_string = f"""INSERT deployment (id, demo_id, email, project_id, region, log_url, status) VALUES ('{data["id"]}', '{data["demo_id"]}', '{data["email"]}', '{data["project_id"]}', '{data["region"]}', '{data["log_url"]}', '{data["status"]}')"""
-  app.logger.debug(query_string)
-  return exec_sql(query_string, None)
+def createDeployment(deployment):
+  # query = f"""INSERT deployment (id, demo_id, email, project_id, region, log_url, status) VALUES ('{deployment["id"]}', '{deployment["demo_id"]}', '{deployment["email"]}', '{deployment["project_id"]}', '{deployment["region"]}', '{deployment["log_url"]}', '{deployment["status"]}')"""
+  query = """INSERT deployment (id, demo_id, email, project_id, region, log_url, status) VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+  data = (deployment["id"], deployment["demo_id"], deployment["email"], deployment["project_id"], deployment["region"], deployment["log_url"], deployment["status"]) 
+  app.logger.debug(query, *data)
+  return _exec_sql(query, data, None)
 
 # Get the deployment list
 def getDeployments(email):
@@ -176,7 +184,6 @@ def getDeployments(email):
         })
     return data
     
-  query_string = f"""SELECT d.id, d.project_id, d.region, d.log_url, d.status, DATE_FORMAT(d.deployed_at, '%m/%e/%Y, %h:%i:%s %p') as deployed_at, d.demo_id, n.name, n.description, n.undeploy_url FROM inventory n, deployment d WHERE d.demo_id=n.id and d.email='{email}'"""
-  app.logger.debug(query_string)
-  
-  return exec_sql(query_string, func)
+  query = f"""SELECT d.id, d.project_id, d.region, d.log_url, d.status, DATE_FORMAT(d.deployed_at, '%m/%e/%Y, %h:%i:%s %p') as deployed_at, d.demo_id, n.name, n.description, n.undeploy_url FROM inventory n, deployment d WHERE d.demo_id=n.id and d.email='{email}'"""
+  app.logger.debug(query)
+  return _exec_sql(query, None, func)

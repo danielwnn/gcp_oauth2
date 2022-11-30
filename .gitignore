@@ -1,6 +1,7 @@
 .vscode/
 venv/
 logs/
+node_modules/
 .DS_Store
 app_old.py
 client_secret.json
@@ -9,6 +10,6 @@ local.py
 new.html
 static/img/profile_ph.jpg
 config/settings-local.json
-
+package-lock.json
 
 
