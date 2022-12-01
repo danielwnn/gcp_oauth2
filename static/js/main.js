@@ -13,6 +13,14 @@ let DEPLOYMENT_LIST = "/deployments"
 let demoList = [];
 let myDemoList = [];
 let projectList = [];
+let regionList = [
+  "asia-east1", "asia-east2", "asia-northeast1", "asia-northeast2", "asia-northeast3", "asia-south1", 
+  "asia-south2", "asia-southeast1", "asia-southeast2", "australia-southeast1", "australia-southeast2",
+  "europe-central2", "europe-north1", "europe-southwest1", "europe-west1", "europe-west2", "europe-west3", 
+  "europe-west4", "europe-west6", "europe-west8", "europe-west9", "me-west1", "northamerica-northeast1",
+  "northamerica-northeast2", "southamerica-east1", "southamerica-west1", "us-central1", "us-central2",
+  "us-east1", "us-east4", "us-east5", "us-east7", "us-south1", "us-west1", "us-west2", "us-west3", "us-west4"
+];
 
 // Public Domain / MIT
 function generateUUID() { 
@@ -133,47 +141,6 @@ const MenuActions = {
   Tab: 10
 };
 
-// filter an array of options against an input string
-// returns an array of options that begin with the filter string, case-independent
-function filterOptions(options = [], filter, exclude = []) {
-  return options.filter(option => {
-    const matches = option.toLowerCase().indexOf(filter.toLowerCase()) === 0;
-    return matches && exclude.indexOf(option) < 0;
-  });
-}
-
-// get index of option that matches a string
-function getIndexByLetter(options, filter) {
-  const firstMatch = filterOptions(options, filter)[0];
-  return firstMatch ? options.indexOf(firstMatch) : -1;
-}
-
-// get updated option index
-function getUpdatedIndex(current, max, action) {
-  switch (action) {
-    case MenuActions.First:
-      return 0;
-    case MenuActions.Last:
-      return max;
-    case MenuActions.Previous:
-      return Math.max(0, current - 1);
-    case MenuActions.Next:
-      return Math.min(max, current + 1);
-    default:
-      return current;}
-}
-
-// return the match index if found
-function findMatchIndex(options, search) {
-  search = search.trim().toLowerCase();
-  options.forEach((el, idx)=> {
-    if (el.toLowerCase() === search){
-      return idx;
-    }
-  });
-  return -1;
-}
-
 // return combobox action from key press
 function getActionFromKey(event, menuOpen) {
   const { key, altKey, ctrlKey, metaKey } = event;
@@ -213,27 +180,6 @@ function getActionFromKey(event, menuOpen) {
   return MenuActions.Others;
 }
 
-// check if an element is currently scrollable
-function isScrollable(element) {
-  return element && element.clientHeight < element.scrollHeight;
-}
-
-// ensure given child element is within the parent's visible scroll area
-function maintainScrollVisibility(activeElement, scrollParent) {
-  const { offsetHeight, offsetTop } = activeElement;
-  const { offsetHeight: parentOffsetHeight, scrollTop } = scrollParent;
-
-  const isAbove = offsetTop < scrollTop;
-  const isBelow = offsetTop + offsetHeight > scrollTop + parentOffsetHeight;
-
-  if (isAbove) {
-    scrollParent.scrollTo(0, offsetTop);
-  } else
-  if (isBelow) {
-    scrollParent.scrollTo(0, offsetTop - parentOffsetHeight + offsetHeight);
-  }
-}
-
 /***********************************
  * Editable Combobox code
  ***********************************/
@@ -245,28 +191,30 @@ const Combobox = function(el, options) {
 
   // data
   this.idBase = this.inputEl.id;
-  this.options = options;
+  this.options = options.sort();
 
   // state
-  this.prevInputValue = "";
+  this.curInputValue = "";
   this.inputEl.value = "";
   this.activeIndex = -1;
   this.open = false;
 };
 
-Combobox.prototype.init = function(callback) {
+Combobox.prototype.init = function(forceSelect, callback) {
+  // force select from the list
+  this.forceSelect = forceSelect ? forceSelect : false;
+  // callback on blur
   this.callback = callback;
+
   this.inputEl.addEventListener('input', this.onInput.bind(this));
   this.inputEl.addEventListener('blur', this.onInputBlur.bind(this));
   this.inputEl.addEventListener('click', () => this.updateMenuState(true));
   this.inputEl.addEventListener('keydown', this.onInputKeyDown.bind(this));
 
   this.options.map((option, index) => {
-    const optionEl = document.createElement('div');
+    const optionEl = document.createElement('li');
     optionEl.setAttribute('role', 'option');
     optionEl.id = `${this.idBase}-${index}`;
-    // optionEl.className = index === 0 ? 'combo-option option-current' : 'combo-option';
-    // optionEl.setAttribute('aria-selected', `${index === 0}`);
     optionEl.className = 'combo-option';
     optionEl.setAttribute('aria-selected', 'false');
     optionEl.innerText = option;
@@ -280,13 +228,14 @@ Combobox.prototype.init = function(callback) {
 
 Combobox.prototype.onInput = function() {
   const curValue = this.inputEl.value;
-  const matches = filterOptions(this.options, curValue);
-
-  // set activeIndex to first matching option
-  // (or leave it alone, if the active option is already in the matching set)
-  const filterCurrentOption = matches.filter(option => option === this.options[this.activeIndex]);
-  if (matches.length > 0 && !filterCurrentOption.length) {
-    this.onOptionChange(this.options.indexOf(matches[0]), false);
+  const matches = this.options.filter(option => {
+    return option.toLowerCase().indexOf(curValue.toLowerCase()) === 0;
+  });
+  
+  if (matches.length > 0) {
+    let selectIndex = this.options.indexOf(curValue);
+    let scrollIndex = this.options.indexOf(matches[0]);
+    this.onOptionChange(selectIndex, scrollIndex);
   }
 
   const menuState = this.options.length > 0;
@@ -298,26 +247,68 @@ Combobox.prototype.onInput = function() {
 Combobox.prototype.onInputKeyDown = function(event) {
   const max = this.options.length - 1;
   const action = getActionFromKey(event, this.open);
-  console.log("action -> " + action);
 
   switch (action) {
-    case MenuActions.Next:
-    case MenuActions.Last:
-    case MenuActions.First:
-    case MenuActions.Previous:
-      event.preventDefault();
-      return this.onOptionChange(getUpdatedIndex(this.activeIndex, max, action), true);
-    case MenuActions.CloseSelect:
-      event.preventDefault();
-      this.activeIndex = findMatchIndex(this.options, this.inputEl.value);
-      this.selectOption(this.activeIndex, false);
-      return this.updateMenuState(false);
     case MenuActions.Close:
       event.preventDefault();
       return this.updateMenuState(false);
     case MenuActions.Open:
       event.preventDefault();
       return this.updateMenuState(true);
+    case MenuActions.Next:
+    case MenuActions.Last:
+    case MenuActions.First:
+    case MenuActions.Previous:
+      event.preventDefault();
+      let index = this.activeIndex;
+      switch (action) {
+        case MenuActions.First:
+          index = 0;
+          break;
+        case MenuActions.Last:
+          index = max;
+          break;
+        case MenuActions.Previous:
+          index = Math.max(0, index - 1);
+          break;
+        case MenuActions.Next:
+          index = Math.min(max, index + 1);
+          break;
+      }
+      return this.onOptionChange(index, index);
+    case MenuActions.CloseSelect:
+      event.preventDefault();
+      if (this.open) {
+        let options = this.el.querySelectorAll('.combo-option.option-current');
+        if (options.length > 0) {
+          let index = options[0].id.match(/^(.*)-([0-9]*)$/)[2];
+          if (index !== this.activeIndex) {
+            this.onOptionChange(index, index);
+            this.selectOption(index);
+            return this.updateMenuState(false);
+          }
+        }
+        options = this.el.querySelectorAll('.combo-option:hover');
+        if (options.length > 0) {
+          let index = options[0].id.match(/^(.*)-([0-9]*)$/)[2];
+          if (index !== this.activeIndex) {
+            this.onOptionChange(index, index);
+            this.selectOption(index);
+            return this.updateMenuState(false);
+          }
+        }
+      } 
+      let matchIndex = this.options.indexOf(this.inputEl.value.trim());
+      if (this.forceSelect) {
+        if (matchIndex === -1) matchIndex = this.defaultIndex; 
+        this.onOptionChange(matchIndex, matchIndex);
+        this.selectOption(matchIndex);
+      } else {
+        this.activeIndex = matchIndex;
+        this.onOptionChange(matchIndex, matchIndex);
+        this.selectOption(matchIndex);
+      }
+      return this.updateMenuState(false);
   }
 };
 
@@ -326,18 +317,38 @@ Combobox.prototype.onInputBlur = function() {
     this.ignoreBlur = false;
     return;
   }
-  if (this.prevInputValue !== this.inputEl.value.trim()) {
-    this.prevInputValue = this.inputEl.value.trim();
-    this.callback(this.prevInputValue);
+
+  // check the value
+  let inputValue = this.inputEl.value.trim();
+  let matchIndex = this.options.indexOf(inputValue);
+    if (this.forceSelect && matchIndex === -1) {
+      this.inputEl.value = "";
+    }
+    this.activeIndex = matchIndex;
+    this.onOptionChange(matchIndex, matchIndex);
+    this.selectOption(matchIndex);
+
+  // trigger callback if the value changes
+  inputValue = this.options[this.activeIndex];
+  if (inputValue !== "" && this.curInputValue !== inputValue) {
+    this.curInputValue = inputValue;
+    if (this.callback) this.callback(this.curInputValue);
   }
+
+  // close the dropdown
   if (this.open) {
-    // this.selectOption(this.activeIndex, false);
     this.updateMenuState(false, false);
   }
 };
 
-Combobox.prototype.onOptionChange = function(index, selected) {
+Combobox.prototype.onOptionChange = function(index, scrollIndex) {
+  // check if an element is currently scrollable
+  function isScrollable(element) {
+    return element && element.clientHeight < element.scrollHeight;
+  }
+
   if (index !== -1) {
+    this.activeIndex = index;
     this.inputEl.setAttribute('aria-activedescendant', `${this.idBase}-${index}`);
   }
   // update active style
@@ -345,18 +356,18 @@ Combobox.prototype.onOptionChange = function(index, selected) {
   [...options].forEach(optionEl => {
     optionEl.classList.remove('option-current');
   });
-  if (selected && index !== -1) {
-    this.activeIndex = index;
+  if (index !== -1) {
     options[index].classList.add('option-current');
   }
-  if (this.open && index !== -1 && isScrollable(this.listboxEl)) {
-    maintainScrollVisibility(options[index], this.listboxEl);
+  if (this.open && scrollIndex !== -1 && isScrollable(this.listboxEl)) {
+    // make the matched visible on top inside the scrollable view
+    this.listboxEl.scrollTo(0, options[scrollIndex].offsetTop);
   }
 };
 
 Combobox.prototype.onOptionClick = function(index) {
-  this.onOptionChange(index, true);
-  this.selectOption(index, true);
+  this.onOptionChange(index, index);
+  this.selectOption(index);
   this.updateMenuState(false);
 };
 
@@ -364,17 +375,17 @@ Combobox.prototype.onOptionMouseDown = function() {
   this.ignoreBlur = true;
 };
 
-Combobox.prototype.selectOption = function(index, selected) {
-  if (selected && index !== -1) {
-    this.inputEl.value = this.options[index];
+Combobox.prototype.selectOption = function(index) {
+  if (index !== -1) {
     this.activeIndex = index;
+    this.inputEl.value = this.options[index];
   }
   // update aria-selected
   const options = this.el.querySelectorAll('[role=option]');
   [...options].forEach(optionEl => {
     optionEl.setAttribute('aria-selected', 'false');
   });
-  if (selected && index !== -1) {
+  if (index !== -1) {
     options[index].setAttribute('aria-selected', 'true');
   }
 };
@@ -387,147 +398,11 @@ Combobox.prototype.updateMenuState = function(open, callFocus = true) {
 };
 
 // init combo
-function initCombo(selector, options) {
+function initCombo(selector, options, forceSelect, callback) {
   const comboEl = document.querySelector(selector);
   const comboComponent = new Combobox(comboEl, options);
-  comboComponent.init(updateRegionList);
+  comboComponent.init(forceSelect, callback);
 }
-
-// /************************************
-//  * Read-only select code
-//  ************************************/
-// const Select = function(el, options) {
-//   // element refs
-//   this.el = el;
-//   this.comboEl = el.querySelector('[role=combobox]');
-//   this.listboxEl = el.querySelector('[role=listbox]');
-
-//   // data
-//   this.idBase = this.comboEl.id;
-//   this.options = options;
-
-//   // state
-//   this.activeIndex = 0;
-//   this.open = false;
-// };
-
-// Select.prototype.init = function() {
-//   this.comboEl.innerHTML = options[0];
-
-//   this.comboEl.addEventListener('blur', this.onComboBlur.bind(this));
-//   this.comboEl.addEventListener('click', () => this.updateMenuState(true));
-//   this.comboEl.addEventListener('keydown', this.onComboKeyDown.bind(this));
-
-//   this.options.map((option, index) => {
-//     const optionEl = document.createElement('div');
-//     optionEl.setAttribute('role', 'option');
-//     optionEl.id = `${this.idBase}-${index}`;
-//     optionEl.className = index === 0 ? 'combo-option option-current' : 'combo-option';
-//     optionEl.setAttribute('aria-selected', `${index === 0}`);
-//     optionEl.innerText = option;
-
-//     optionEl.addEventListener('click', event => {
-//       event.stopPropagation();
-//       this.onOptionClick(index);
-//     });
-//     optionEl.addEventListener('mousedown', this.onOptionMouseDown.bind(this));
-
-//     this.listboxEl.appendChild(optionEl);
-//   });
-// };
-
-// Select.prototype.onComboKeyDown = function (event) {
-//   const { key } = event;
-//   const max = this.options.length - 1;
-
-//   const action = getActionFromKey(event, this.open);
-
-//   switch (action) {
-//     case MenuActions.Next:
-//     case MenuActions.Last:
-//     case MenuActions.First:
-//     case MenuActions.Previous:
-//       event.preventDefault();
-//       return this.onOptionChange(getUpdatedIndex(this.activeIndex, max, action), true);
-//     case MenuActions.CloseSelect:
-//     case MenuActions.Space:
-//       event.preventDefault();
-//       this.selectOption(this.activeIndex);
-//     case MenuActions.Close:
-//       event.preventDefault();
-//       return this.updateMenuState(false);
-//     case MenuActions.Type:
-//       this.updateMenuState(true);
-//       return this.onOptionChange(Math.max(0, getIndexByLetter(this.options, key)), false);
-//     case MenuActions.Open:
-//       event.preventDefault();
-//       return this.updateMenuState(true);}
-// };
-
-// Select.prototype.onComboBlur = function() {
-//   if (this.ignoreBlur) {
-//     this.ignoreBlur = false;
-//     return;
-//   }
-
-//   if (this.open) {
-//     this.selectOption(this.activeIndex);
-//     this.updateMenuState(false, false);
-//   }
-// };
-
-// Select.prototype.onOptionChange = function(index) {
-//   this.activeIndex = index;
-//   this.comboEl.setAttribute('aria-activedescendant', `${this.idBase}-${index}`);
-
-//   // update active style
-//   const options = this.el.querySelectorAll('[role=option]');
-//   [...options].forEach(optionEl => {
-//     optionEl.classList.remove('option-current');
-//   });
-//   options[index].classList.add('option-current');
-
-//   if (isScrollable(this.listboxEl)) {
-//     maintainScrollVisibility(options[index], this.listboxEl);
-//   }
-// };
-
-// Select.prototype.onOptionClick = function(index) {
-//   this.onOptionChange(index, true);
-//   this.selectOption(index, true);
-//   this.updateMenuState(false);
-// };
-
-// Select.prototype.onOptionMouseDown = function() {
-//   this.ignoreBlur = true;
-// };
-
-// Select.prototype.selectOption = function(index) {
-//   const selected = this.options[index];
-//   this.comboEl.innerHTML = selected;
-//   this.activeIndex = index;
-
-//   // update aria-selected
-//   const options = this.el.querySelectorAll('[role=option]');
-//   [...options].forEach(optionEl => {
-//     optionEl.setAttribute('aria-selected', 'false');
-//   });
-//   options[index].setAttribute('aria-selected', 'true');
-// };
-
-// Select.prototype.updateMenuState = function(open, callFocus = true) {
-//   this.open = open;
-//   this.comboEl.setAttribute('aria-expanded', `${open}`);
-//   open ? this.el.classList.add('open') : this.el.classList.remove('open');
-//   callFocus && this.comboEl.focus();
-// };
-
-// // init select
-// function initSelect(selector, options) {
-//   const selectEl = document.querySelector(selector);
-//   const selectComponent = new Select(selectEl, options);
-//   selectComponent.init();
-// }
 
 // update breadcrumb
 let BREADCRUMB_LABELS = {
@@ -818,7 +693,7 @@ function showDemoDeployPage(title, demoId) {
                   </div>
                   <div class="col-12">
                     <label for="comboProject" class="form-label">GCP Project:</label>
-                    <div class="combo js-combobox">
+                    <div class="combo js-combobox-project">
                       <input
                         id="comboProject"
                         name="project_id"
@@ -833,25 +708,39 @@ function showDemoDeployPage(title, demoId) {
                         placeholder="Select or enter a project"
                         required=""
                       />
-                      <div id="listProject" class="combo-menu" role="listbox"></div>
+                      <ul id="listProject" class="combo-menu" role="listbox"></ul>
                       <div class="invalid-feedback">Please select or enter a project.</div>
                     </div>
                   </div>
-                  <div class="col-12"> 
-                    <label for="inputRegion" class="form-label">GCP Region:</label>
-                    <select id="inputRegion" name="region" class="form-select" required="">
-                      <option value="" disabled selected hidden>Choose a region</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a region.</div>
+                  <div class="col-12">
+                    <label for="comboRegion" class="form-label">GCP Region:</label>
+                    <div class="combo js-combobox-region">
+                      <input
+                        id="comboRegion"
+                        name="region"
+                        aria-activedescendant=""
+                        aria-autocomplete="none"
+                        aria-controls="listRegion"
+                        aria-expanded="false"
+                        aria-haspopup="listbox"
+                        class="form-select"
+                        role="combobox"
+                        type="text"
+                        placeholder="Select a region"
+                        required=""
+                      />
+                      <ul id="listRegion" class="combo-menu" role="listbox"></ul>
+                      <div class="invalid-feedback">Please select a region.</div>
+                    </div>
                   </div>
                   <div class="col-12"> 
                     <input class="form-check-input" id="inputAgree" name="agree" type="checkbox" value="yes" required=""> <label class="form-check-label" for="invalidCheck"> Agree to Terms and Conditions </label>
                     <div class="invalid-feedback">You must agree before deploying.</div>
                     <div class="disclaimer form-control">
                       Google Cloud grants you a non-exclusive copyright license to use all programming code examples from which you can generate similar function tailored to your own specific needs.<br/><br/>
-                      SUBJECT TO ANY STATUTORY WARRANTIES WHICH CANNOT BE EXCLUDED, GOOGLE CLOUD, ITS PROGRAM DEVELOPERS AND SUPPLIERS MAKE NO WARRANTIES OR CONDITIONS EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OR CONDITIONS OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT, REGARDING THE PROGRAM OR TECHNICAL SUPPORT, IF ANY.<br/><br/>
-                      UNDER NO CIRCUMSTANCES IS GOOGLE CLOUD, ITS PROGRAM DEVELOPERS OR SUPPLIERS LIABLE FOR ANY OF THE FOLLOWING, EVEN IF INFORMED OF THEIR POSSIBILITY:<br/><br/> 1. LOSS OF, OR DAMAGE TO, DATA;<br/>2. DIRECT, SPECIAL, INCIDENTAL, OR INDIRECT DAMAGES, OR FOR ANY ECONOMIC CONSEQUENTIAL DAMAGES; OR<br/>3. LOST PROFITS, BUSINESS, REVENUE, GOODWILL, OR ANTICIPATED SAVINGS.<br/><br/>
-                      SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF DIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, SO SOME OR ALL OF THE ABOVE LIMITATIONS OR EXCLUSIONS MAY NOT APPLY TO YOU.
+                      Subject to any statutory warranties which cannot be excluded, Google Cloud, its program developers and suppliers make no warranties or conditions either express or implied, including but not limited to, the implied warranties or conditions of merchantability, fitness for a particular purpose, and non-infringement, regarding the program or technical support, if any.<br/><br/>
+                      Under no circumstances is Google Cloud, its program developers or suppliers liable for any of the following, even if informed of their possibility:<br/><br/>1. Loss of, or damage to, data;<br/>2. Direct, special, incidental, or indirect damages, or for any economic consequential damages; or<br/>3. Lost profits, business, revenue, goodwill, or anticipated savings.<br/><br/>
+                      Some jurisdictions do not allow the exclusion or limitation of direct, incidental, or consequential damages, so some or all of the above limitations or exclusions may not apply to you.
                     </div>
                   </div>
                   <div class="text-center"> 
@@ -867,8 +756,8 @@ function showDemoDeployPage(title, demoId) {
       <div class="col-lg-3"></div>
     </div>`;
 
-  // update the project list
   updateProjectList();
+  initCombo('.js-combobox-region', regionList, true);
 
   // fetch the demo name for page reload
   if (name === "") {
@@ -1123,14 +1012,14 @@ function updateProjectList() {
       projectList.forEach(el => {
         options.push(el.projectId);
       });
-      initCombo('.js-combobox', options);
+      initCombo('.js-combobox-project', options);
     });
   } else {
     let options = [];
     projectList.forEach(el => {
       options.push(el.projectId);
     });
-    initCombo('.js-combobox', options);
+    initCombo('.js-combobox-project', options);
   }
 }
 
