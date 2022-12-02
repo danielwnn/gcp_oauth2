@@ -102,12 +102,6 @@ if (backtotop) {
   document.addEventListener('scroll', toggleBacktotop);
 }
 
-// Initiate tooltips
-var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
-  return new bootstrap.Tooltip(tooltipTriggerEl)
-});
-
 // start for combo dropdown list
 const Keys = {
   Backspace: 'Backspace',
@@ -485,7 +479,8 @@ function showDemoList() {
             <div class="card-body">
               <h5 class="card-title">
                 ${demoList[i].name} 
-                <i class="bi bi-link-45deg clipboard" onclick="copyDemoLink('${demoList[i].id}')" title="Click to copy the demo link"></i>
+                <i class="bi bi-link-45deg clipboard" onclick="copyDemoLink('${demoList[i].id}')" 
+                  data-bs-toggle="tooltip" data-bs-placement="top" title="Click to copy the demo link"></i>
               </h5>
               <span>${demoList[i].description}</span>
             </div>
@@ -498,6 +493,9 @@ function showDemoList() {
     }
     document.querySelector('#demoListInfo').innerHTML = "";
     document.querySelector('#demoList').innerHTML = innerHTML;
+    // init the tooltip
+    let tooltipEl = document.querySelector('.bi.bi-link-45deg.clipboard');
+    let tooltip = new bootstrap.Tooltip(tooltipEl);
   } else {
     document.querySelector('#demoListInfo').innerHTML = 
     `<div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -976,9 +974,6 @@ function copyDemoLink(id) {
   let link = `<a href="${loc.origin}/#/demos/demo-deploy/${id}" target="_blank">Deploy Demo</a>`;
   navigator.clipboard.writeText(link);
   addNotification("You copied the demo deployment link to clipboard.", false);
-  setTimeout(function(){
-    document.querySelector('#linkNotification').click();
-  }, 800);
 }
 
 // deploy the demo - set path
@@ -1128,6 +1123,9 @@ function addNotification(message, isError) {
   document.querySelector('#notifCount').innerHTML = notifCount;
   document.querySelector('#notifSummary').innerHTML = `You have ${notifCount} notifications.`;
   document.querySelector('#notifClearAll').disabled = false;
+  setTimeout(function(){
+    document.querySelector('#linkNotification').click();
+  }, 500);
 }
 
 // clear all notification messages
