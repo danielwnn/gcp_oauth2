@@ -529,6 +529,16 @@ hr {
   background-color: #f6f9ff;
 }
 
+#linkNotification {
+  outline: none;
+  border: none;
+}
+
+a[data-bs-toggle="dropdown"] {
+  outline: none;
+  border: none;
+}
+
 .header-nav .profile {
   min-width: 240px;
   padding-bottom: 0;
