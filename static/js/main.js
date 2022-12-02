@@ -483,7 +483,10 @@ function showDemoList() {
         `<div class="col-lg-4">
           <div class="card">
             <div class="card-body">
-              <h5 class="card-title">${demoList[i].name}</h5>
+              <h5 class="card-title">
+                ${demoList[i].name} 
+                <i class="bi bi-link-45deg clipboard" onclick="copyDemoLink('${demoList[i].id}')" title="Click to copy the demo link"></i>
+              </h5>
               <span>${demoList[i].description}</span>
             </div>
             <div class="card-footer text-end">
@@ -965,6 +968,17 @@ function deleteDemo(id) {
       addNotification(html, false);
     });
   }
+}
+
+// copy the demo link
+function copyDemoLink(id) {
+  let loc = new URL(window.location.href);
+  let link = `<a href="${loc.origin}/#/demos/demo-deploy/${id}" target="_blank">Deploy Demo</a>`;
+  navigator.clipboard.writeText(link);
+  addNotification("You copied the demo deployment link to clipboard.", false);
+  setTimeout(function(){
+    document.querySelector('#linkNotification').click();
+  }, 800);
 }
 
 // deploy the demo - set path
