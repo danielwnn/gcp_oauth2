@@ -1,0 +1,11 @@
+Google Cloud grants you a non-exclusive copyright license to use all programming code examples from which you can generate similar function tailored to your own specific needs.
+
+Subject to any statutory warranties which cannot be excluded, Google Cloud, its program developers and suppliers make no warranties or conditions either express or implied, including but not limited to, the implied warranties or conditions of merchantability, fitness for a particular purpose, and non-infringement, regarding the program or technical support, if any.
+
+Under no circumstances is Google Cloud, its program developers or suppliers liable for any of the following, even if informed of their possibility:
+
+1. Loss of, or damage to, data;
+2. Direct, special, incidental, or indirect damages, or for any economic consequential damages; or
+3. Lost profits, business, revenue, goodwill, or anticipated savings.
+
+Some jurisdictions do not allow the exclusion or limitation of direct, incidental, or consequential damages, so some or all of the above limitations or exclusions may not apply to you.
