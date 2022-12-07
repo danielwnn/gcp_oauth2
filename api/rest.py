@@ -1,7 +1,7 @@
 import yaml
 import json
 import requests
-from flask import current_app as app, request
+from flask import current_app as app, request, redirect, session
 
 from utils.helper import makeHttpRequest, get_user_email, role_required, HTTP_200
 from datastore import sql
@@ -92,3 +92,8 @@ def deleteDemo(id):
 def getDeployments():
   email = get_user_email()
   return sql.getDeployments(email), 200
+
+# from the website
+def fromWebsite(id):
+  session["next_url"] = f"/#/demos/demo-deploy/{id}"
+  return redirect("/authorize")

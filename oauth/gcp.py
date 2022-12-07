@@ -107,8 +107,10 @@ def oauth2_callback():
   url = None
   if 'next_url' in session:
     url = session["next_url"]
-  if 'req_full_path' in session:
+    session.pop("next_url", default=None)
+  elif 'req_full_path' in session:
     url = '/popup.html#' + session['req_full_path']
+    session.pop("req_full_path", default=None)
   
   app.logger.debug(f"callback_redirect_url - {url}")
   

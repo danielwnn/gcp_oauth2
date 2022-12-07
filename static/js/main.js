@@ -971,7 +971,7 @@ function deleteDemo(id) {
 // copy the demo link
 function copyDemoLink(id) {
   let loc = new URL(window.location.href);
-  let link = `<a href="${loc.origin}/#/demos/demo-deploy/${id}" target="_blank">Deploy Demo</a>`;
+  let link = `<a href="${loc.origin}/website/deploy/${id}" target="_blank">Deploy Demo</a>`;
   navigator.clipboard.writeText(link);
   addNotification("You copied the demo deployment link to clipboard.", false);
 }

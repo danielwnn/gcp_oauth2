@@ -60,6 +60,9 @@ def _init_endpoints(app):
   app.add_url_rule("/demos/<id>", "updateDemo", methods=["PUT"], view_func=rest.updateDemo)
   app.add_url_rule("/demos/<id>", "deleteDemo", methods=["DELETE"], view_func=rest.deleteDemo)
   
+  # website link
+  app.add_url_rule("/website/deploy/<id>", "fromWebsite", methods=["GET"], view_func=rest.fromWebsite)
+  
 ###########################################################
 # the app factory function
 ######
