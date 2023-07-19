@@ -15,5 +15,5 @@ The Demo Solution Development App includes the following features:
 - A one-click deployment process
 - Admin can onboard pre-built GCP solutions
 
-## Solution Architecture
+## Architecture
 ![Solution Architecture](architecture.png)
