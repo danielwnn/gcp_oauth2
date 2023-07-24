@@ -27,7 +27,7 @@ steps:
     - '--platform=managed'
     - '--set-secrets=/secret_manager/settings.json=app_settings:latest'
     - '--set-env-vars=APP_ENV=PROD,APP_PORT=8080,APP_CORS=*'
-    - '--vpc-connector=projects/$PROJECT_ID/locations/${_REGION}/connectors/vpcconnector2'
+    - '--vpc-connector=projects/$PROJECT_ID/locations/${_REGION}/connectors/${_CONNECTOR}'
     - '--allow-unauthenticated'
 
 images:
@@ -35,6 +35,7 @@ images:
 
 substitutions:
   _REGION: us-west3
+  _CONNECTOR: vpcconnector2
   
 options:
   dynamic_substitutions: true

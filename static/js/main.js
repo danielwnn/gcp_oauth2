@@ -900,7 +900,7 @@ function updateMainContent(hashPath) {
   else {
     let label = BREADCRUMB_LABELS[path];
     if (label) {
-      document.querySelector('#mainContent').innerHTML = `<h2>${BREADCRUMB_LABELS[path]}</h2>`;
+      document.querySelector('#mainContent').innerHTML = `<h2>${label}</h2>`;
     }
     else {
       document.querySelector('#mainContent').innerHTML = 
@@ -1098,10 +1098,15 @@ function openPopWindow(url, target, width, height) {
   var top = (screen.height - height) / 2;
   var left = (screen.width - width) / 2;
   var position = ",width=" + width + ",height=" + height + ",top=" + top + ",left=" + left;
-  var popupWin = window.open(
-      url, target, 
+  try {
+    var popupWin = window.open(url, target, 
       "popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes" + position);
-  popupWin.focus();
+    popupWin.focus();
+  } catch (error) {
+    console.error(error);
+    addNotification("Please allow the popup window for this website in your browser settings and then refresh the page.", true);
+  }
+
 }
 
 // the notification message count
