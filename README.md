@@ -26,7 +26,7 @@ The Demo Solution Development App includes the following features:
 - Deploy a Cloud SQL - MySQL instance into a GCP region. Please refer to the 2 screenshots below.
 ![Cloud SQL 1](images/cloud_sql_1.png)  
 ![Cloud SQL 1](images/cloud_sql_2.png)  
-- Use the Secret Manager to store OAuth 2.0 Client info - Client ID and Client Secret and Cloud SQL connection info - Host IP, User ID and Password. Please refer to the screenshot below.
+- Use the Secret Manager to store OAuth 2.0 Client info - Client ID and Client Secret and Cloud SQL connection info - Host IP, User ID and Password. Make a copy of ```config/settings-sample.json``` and update it for your need. Please refer to the screenshot below for creating the secret.
 ![Secret Manager](images/secret_manager.png)  
 - Deploy the App to Cloud Run using Cloud Build
   - Modify the cloudbuild.yaml to use your own PROJECT_ID, _REGION and _CONNECTOR.
